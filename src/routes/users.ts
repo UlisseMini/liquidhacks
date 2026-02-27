@@ -13,7 +13,14 @@ usersRouter.get('/:username', async (c) => {
   if (userRows.length === 0) return c.json({ error: 'Not found' }, 404);
   const user = userRows[0];
 
-  const userListings = await db.select().from(listings)
+  const userListings = await db.select({
+    id: listings.id, type: listings.type, provider: listings.provider,
+    title: listings.title, description: listings.description,
+    faceValue: listings.faceValue, askingPrice: listings.askingPrice,
+    creditType: listings.creditType, proofLink: listings.proofLink,
+    contactInfo: listings.contactInfo, createdAt: listings.createdAt,
+    updatedAt: listings.updatedAt, userId: listings.userId,
+  }).from(listings)
     .where(eq(listings.userId, user.id))
     .orderBy(desc(listings.createdAt));
 
