@@ -9,34 +9,35 @@ const listingsRouter = new Hono();
 // GET all listings (public)
 listingsRouter.get('/', async (c) => {
   const typeFilter = c.req.query('type');
+  const applyType = (q: any) =>
+    typeFilter === 'selling' || typeFilter === 'buying'
+      ? q.where(eq(listings.type, typeFilter))
+      : q;
 
-  let query = db.select({
-    id: listings.id,
-    type: listings.type,
-    provider: listings.provider,
-    title: listings.title,
-    description: listings.description,
-    faceValue: listings.faceValue,
-    askingPrice: listings.askingPrice,
-    creditType: listings.creditType,
-    proofLink: listings.proofLink,
-    contactInfo: listings.contactInfo,
-    createdAt: listings.createdAt,
-    userId: listings.userId,
-    status: listings.status,
-    username: users.username,
-    avatarUrl: users.avatarUrl,
-  })
-  .from(listings)
-  .leftJoin(users, eq(listings.userId, users.id))
-  .orderBy(desc(listings.createdAt));
-
-  if (typeFilter && (typeFilter === 'selling' || typeFilter === 'buying')) {
-    query = query.where(eq(listings.type, typeFilter)) as typeof query;
+  // Try with status column first; fall back without it if migration hasn't run yet
+  try {
+    const q = applyType(db.select({
+      id: listings.id, type: listings.type, provider: listings.provider,
+      title: listings.title, description: listings.description,
+      faceValue: listings.faceValue, askingPrice: listings.askingPrice,
+      creditType: listings.creditType, proofLink: listings.proofLink,
+      contactInfo: listings.contactInfo, createdAt: listings.createdAt,
+      userId: listings.userId, status: listings.status,
+      username: users.username, avatarUrl: users.avatarUrl,
+    }).from(listings).leftJoin(users, eq(listings.userId, users.id)).orderBy(desc(listings.createdAt)));
+    return c.json(await q);
+  } catch {
+    const q = applyType(db.select({
+      id: listings.id, type: listings.type, provider: listings.provider,
+      title: listings.title, description: listings.description,
+      faceValue: listings.faceValue, askingPrice: listings.askingPrice,
+      creditType: listings.creditType, proofLink: listings.proofLink,
+      contactInfo: listings.contactInfo, createdAt: listings.createdAt,
+      userId: listings.userId,
+      username: users.username, avatarUrl: users.avatarUrl,
+    }).from(listings).leftJoin(users, eq(listings.userId, users.id)).orderBy(desc(listings.createdAt)));
+    return c.json(await q);
   }
-
-  const results = await query;
-  return c.json(results);
 });
 
 // GET single listing (public)
