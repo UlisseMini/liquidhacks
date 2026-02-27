@@ -1213,3 +1213,95 @@ footer {
 
 .card-uname-link { cursor: pointer; transition: color 0.15s; }
 .card-uname-link:hover { color: var(--neon); text-decoration: underline; }
+
+/* ── Profile Full Page ──────────────────────────────── */
+.profile-page {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: var(--bg);
+  overflow-y: auto;
+  transform: translateX(100%);
+  transition: transform 0.22s ease;
+}
+.profile-page.open { transform: translateX(0); }
+
+.profile-page-nav {
+  position: sticky;
+  top: 0;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  padding: 0.9rem 1.5rem;
+  z-index: 1;
+}
+
+.profile-page-back {
+  background: none;
+  border: none;
+  color: var(--neon);
+  font-family: var(--mono);
+  font-size: 0.9rem;
+  cursor: pointer;
+  padding: 0;
+  letter-spacing: 0.03em;
+}
+.profile-page-back:hover { text-decoration: underline; }
+
+.profile-page-content {
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem;
+}
+
+.profile-av--lg {
+  width: 80px;
+  height: 80px;
+  font-size: 1.5rem;
+}
+
+/* ── Profile Hover Preview ──────────────────────────── */
+.profile-preview {
+  position: fixed;
+  z-index: 200;
+  background: var(--bg2);
+  border: 1px solid var(--border-hot);
+  border-radius: 6px;
+  padding: 0.8rem;
+  width: 200px;
+  box-shadow: 0 6px 24px rgba(0,0,0,0.6);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.12s;
+}
+.profile-preview.show { opacity: 1; }
+
+.pp-user { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.6rem; }
+
+.pp-av {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid var(--neon);
+  flex-shrink: 0;
+}
+.pp-av--init {
+  background: var(--card);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--neon);
+}
+
+.pp-username { font-weight: 600; font-size: 0.85rem; color: var(--text); }
+.pp-since { font-size: 0.7rem; color: var(--dim); }
+
+.pp-stats {
+  display: flex;
+  gap: 0.8rem;
+  font-size: 0.72rem;
+  color: var(--dim);
+  border-top: 1px solid var(--border);
+  padding-top: 0.5rem;
+}

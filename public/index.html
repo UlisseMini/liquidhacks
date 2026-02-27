@@ -185,17 +185,15 @@
     </div>
   </div>
 
-  <!-- Profile Modal -->
-  <div class="mo" id="profileMo" onclick="if(event.target===this)closeProfMo()">
-    <div class="mo-box mo-box--profile">
-      <div class="mo-head">
-        <h3 id="profileMoTitle">profile</h3>
-        <button class="mo-x" onclick="closeProfMo()">&times;</button>
-      </div>
-      <div class="mo-body" id="profileMoBody">
-        <div class="grid-loading">loading...</div>
-      </div>
+  <!-- Profile Hover Preview -->
+  <div id="profilePreview" class="profile-preview"></div>
+
+  <!-- Profile Full Page -->
+  <div id="profilePage" class="profile-page">
+    <div class="profile-page-nav">
+      <button class="profile-page-back" onclick="closeProfilePage()">&#8592; back</button>
     </div>
+    <div class="profile-page-content" id="profilePageBody"></div>
   </div>
 
 
