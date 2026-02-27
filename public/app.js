@@ -256,7 +256,6 @@ function toast(msg, isError) {
 let chatListingId = null;
 let chatBuyerId = null;
 let chatPollTimer = null;
-let chatLastTimestamp = null;
 
 function openChat(listingId, listingOwnerId) {
   if (!currentUser) { toast('log in to chat', true); return; }
@@ -266,25 +265,23 @@ function openChat(listingId, listingOwnerId) {
   }
   chatListingId = listingId;
   chatBuyerId = currentUser.id;
-  chatLastTimestamp = null;
   document.getElementById('chatMessages').innerHTML = '<div class="chat-empty">loading...</div>';
   document.getElementById('chatInput').value = '';
   openMo('chatMo');
-  loadChatMessages(false);
-  chatPollTimer = setInterval(() => loadChatMessages(true), 3000);
+  loadChatMessages();
+  chatPollTimer = setInterval(loadChatMessages, 3000);
 }
 
 function openChatAs(listingId, buyerId) {
   // Used from conversations list — works for both buyer and seller
   chatListingId = listingId;
   chatBuyerId = buyerId;
-  chatLastTimestamp = null;
   document.getElementById('chatMessages').innerHTML = '<div class="chat-empty">loading...</div>';
   document.getElementById('chatInput').value = '';
   closeMo('convListMo');
   openMo('chatMo');
-  loadChatMessages(false);
-  chatPollTimer = setInterval(() => loadChatMessages(true), 3000);
+  loadChatMessages();
+  chatPollTimer = setInterval(loadChatMessages, 3000);
 }
 
 function closeChatMo() {
@@ -292,46 +289,31 @@ function closeChatMo() {
   if (chatPollTimer) { clearInterval(chatPollTimer); chatPollTimer = null; }
   chatListingId = null;
   chatBuyerId = null;
-  chatLastTimestamp = null;
 }
 
-async function loadChatMessages(pollOnly) {
+async function loadChatMessages() {
   if (!chatListingId || !chatBuyerId) return;
   try {
-    let url = `/api/chat/${chatListingId}/messages?buyerId=${chatBuyerId}`;
-    if (pollOnly && chatLastTimestamp) url += `&after=${encodeURIComponent(chatLastTimestamp)}`;
+    const url = `/api/chat/${chatListingId}/messages?buyerId=${chatBuyerId}`;
     const res = await fetch(url);
     if (!res.ok) return;
     const data = await res.json();
 
-    if (pollOnly && data.messages.length === 0) return;
-
-    if (!pollOnly) {
-      document.getElementById('chatMoTitle').textContent = data.listing?.title || 'chat';
-    }
-
     const container = document.getElementById('chatMessages');
+    const prevCount = container.querySelectorAll('.chat-msg').length;
 
-    if (!pollOnly) {
-      if (data.messages.length === 0) {
-        container.innerHTML = '<div class="chat-empty">no messages yet — say hi!</div>';
-      } else {
-        container.innerHTML = data.messages.map(m => chatMsgHtml(m)).join('');
-      }
+    document.getElementById('chatMoTitle').textContent = data.listing?.title || 'chat';
+
+    if (data.messages.length === 0) {
+      container.innerHTML = '<div class="chat-empty">no messages yet — say hi!</div>';
     } else {
-      // Append new messages
-      const emptyEl = container.querySelector('.chat-empty');
-      if (emptyEl) emptyEl.remove();
-      container.insertAdjacentHTML('beforeend', data.messages.map(m => chatMsgHtml(m)).join(''));
+      container.innerHTML = data.messages.map(m => chatMsgHtml(m)).join('');
     }
 
-    // Update last timestamp
-    if (data.messages.length > 0) {
-      chatLastTimestamp = data.messages[data.messages.length - 1].createdAt;
+    // Scroll to bottom only if new messages arrived
+    if (data.messages.length > prevCount) {
+      container.scrollTop = container.scrollHeight;
     }
-
-    // Scroll to bottom
-    container.scrollTop = container.scrollHeight;
   } catch (e) {
     // Silently fail on poll errors
   }
@@ -360,13 +342,7 @@ async function sendChatMsg() {
       body: JSON.stringify(payload),
     });
     if (res.ok) {
-      const msg = await res.json();
-      const container = document.getElementById('chatMessages');
-      const emptyEl = container.querySelector('.chat-empty');
-      if (emptyEl) emptyEl.remove();
-      container.insertAdjacentHTML('beforeend', chatMsgHtml(msg));
-      chatLastTimestamp = msg.createdAt;
-      container.scrollTop = container.scrollHeight;
+      loadChatMessages(); // Reload to show the new message
     } else {
       const err = await res.json();
       toast(err.error || 'failed to send', true);
