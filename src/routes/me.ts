@@ -4,6 +4,8 @@ import { db } from '../db/index.js';
 import { users, listings } from '../db/schema.js';
 import { requireAuth } from '../middleware/auth.js';
 
+const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'sefikaozturk';
+
 const me = new Hono();
 
 me.get('/', requireAuth, async (c) => {
@@ -24,7 +26,7 @@ me.get('/', requireAuth, async (c) => {
     .orderBy(desc(listings.createdAt));
 
   return c.json({
-    user: userRow[0],
+    user: { ...userRow[0], isAdmin: userRow[0].username === ADMIN_USERNAME },
     listings: userListings,
   });
 });

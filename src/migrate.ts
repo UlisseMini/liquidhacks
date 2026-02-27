@@ -25,6 +25,13 @@ async function main() {
     ON direct_messages (sender_id, receiver_id, created_at)
   `;
 
+  await sql`
+    CREATE TABLE IF NOT EXISTS outreach (
+      devpost_profile text PRIMARY KEY,
+      reached_out_at timestamp DEFAULT now() NOT NULL
+    )
+  `;
+
   console.log('Migrations done');
   await sql.end();
 }

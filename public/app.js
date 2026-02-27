@@ -603,7 +603,10 @@ async function loadProfileInto(username, body) {
           : `<div class="profile-av profile-av--lg profile-av--init">${user.username.slice(0,2).toUpperCase()}</div>`
         }
         <div class="profile-info">
-          <div class="profile-username">${esc(user.username)}</div>
+          <div class="profile-username">
+            ${esc(user.username)}
+            ${isOwnProfile && currentUser.isAdmin ? `<span class="admin-badge">admin</span>` : ''}
+          </div>
           <div class="profile-since">member since ${since}</div>
           ${!isOwnProfile ? `<button class="btn-sketch btn-sketch--fill profile-dm-btn" onclick="openDm('${user.id}','${esc(user.username)}')">send message</button>` : ''}
         </div>
@@ -626,8 +629,140 @@ async function loadProfileInto(username, body) {
         </div>
       ` : `<div class="cs-dim" style="text-align:center;padding:2rem">no listings yet</div>`}
     `;
+
+    if (isOwnProfile && currentUser.isAdmin) {
+      body.insertAdjacentHTML('beforeend', `
+        <div class="admin-panel">
+          <div class="admin-panel-title">⬡ admin</div>
+          <div class="admin-tabs">
+            <button class="admin-tab on" onclick="adminTab('growth',this)">growth agent</button>
+            <button class="admin-tab" onclick="adminTab('analytics',this)">analytics</button>
+          </div>
+          <div id="adminGrowth" class="admin-section"></div>
+          <div id="adminAnalytics" class="admin-section" style="display:none"></div>
+        </div>
+      `);
+      loadAdminGrowth();
+      loadAdminAnalytics();
+    }
   } catch (e) {
     body.innerHTML = '<div class="grid-loading">failed to load profile</div>';
+  }
+}
+
+// ── Admin ─────────────────────────────────────────────
+function adminTab(name, btn) {
+  document.querySelectorAll('.admin-tab').forEach(b => b.classList.remove('on'));
+  btn.classList.add('on');
+  document.getElementById('adminGrowth').style.display = name === 'growth' ? '' : 'none';
+  document.getElementById('adminAnalytics').style.display = name === 'analytics' ? '' : 'none';
+}
+
+async function loadAdminGrowth() {
+  const el = document.getElementById('adminGrowth');
+  if (!el) return;
+  el.innerHTML = '<div class="grid-loading">loading...</div>';
+  try {
+    const res = await fetch('/api/admin/growth');
+    if (!res.ok) { el.innerHTML = `<div class="grid-loading">${(await res.json()).error || 'failed'}</div>`; return; }
+    const { contacts, total } = await res.json();
+    el.innerHTML = `
+      <div class="admin-growth-header">
+        <span class="cs-dim">${total} contacts scraped · showing first 50</span>
+        <button class="btn-sketch btn-sketch--ghost" style="padding:4px 10px;font-size:10px" onclick="loadAdminGrowth()">↻ refresh</button>
+      </div>
+      <div class="admin-table-wrap">
+        <table class="admin-table">
+          <thead><tr>
+            <th>person</th><th>hackathon</th><th>prize</th><th>contact</th><th>reached out</th>
+          </tr></thead>
+          <tbody>
+            ${contacts.map(c => `
+              <tr class="${c.reached_out ? 'admin-row--done' : ''}">
+                <td>
+                  <a href="${esc(c.devpost_profile)}" target="_blank" rel="noopener" class="admin-name-link">${esc(c.name)}</a>
+                  <div class="cs-dim" style="font-size:10px">${esc(c.project_title)}</div>
+                </td>
+                <td class="cs-dim">${esc(c.hackathon)}</td>
+                <td class="cs-dim">${esc(c.prize)}</td>
+                <td class="admin-contacts">
+                  ${c.github ? `<a href="${esc(c.github)}" target="_blank" rel="noopener" class="admin-cl">gh</a>` : ''}
+                  ${c.linkedin ? `<a href="${esc(c.linkedin)}" target="_blank" rel="noopener" class="admin-cl">li</a>` : ''}
+                  ${c.twitter ? `<a href="${esc(c.twitter)}" target="_blank" rel="noopener" class="admin-cl">tw</a>` : ''}
+                  ${c.email ? `<a href="mailto:${esc(c.email)}" class="admin-cl">✉</a>` : ''}
+                  ${!c.github && !c.linkedin && !c.twitter && !c.email ? `<span class="cs-dim">—</span>` : ''}
+                </td>
+                <td>
+                  ${c.reached_out
+                    ? `<span class="admin-done">✓</span>`
+                    : `<button class="admin-outreach-btn" onclick="markOutreach('${esc(c.devpost_profile)}',this)">mark</button>`
+                  }
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+  } catch (e) {
+    el.innerHTML = '<div class="grid-loading">error loading growth data</div>';
+  }
+}
+
+async function markOutreach(devpost_profile, btn) {
+  btn.disabled = true;
+  btn.textContent = '...';
+  try {
+    const res = await fetch('/api/admin/growth/outreach', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ devpost_profile }),
+    });
+    if (res.ok) {
+      btn.closest('tr').classList.add('admin-row--done');
+      btn.closest('td').innerHTML = '<span class="admin-done">✓</span>';
+    } else {
+      btn.disabled = false;
+      btn.textContent = 'mark';
+    }
+  } catch (e) {
+    btn.disabled = false;
+    btn.textContent = 'mark';
+  }
+}
+
+async function loadAdminAnalytics() {
+  const el = document.getElementById('adminAnalytics');
+  if (!el) return;
+  el.innerHTML = '<div class="grid-loading">loading...</div>';
+  try {
+    const res = await fetch('/api/admin/stats');
+    if (!res.ok) { el.innerHTML = '<div class="grid-loading">failed</div>'; return; }
+    const s = await res.json();
+    el.innerHTML = `
+      <div class="admin-stats">
+        <div class="admin-stats-section">
+          <div class="cs-label">overview</div>
+          <div class="admin-stat-row"><span>users</span><span class="admin-stat-val">${s.users}</span></div>
+          <div class="admin-stat-row"><span>listings</span><span class="admin-stat-val">${s.listings}</span></div>
+          <div class="admin-stat-row"><span>active</span><span class="admin-stat-val">${s.byStatus.active || 0}</span></div>
+          <div class="admin-stat-row"><span>traded</span><span class="admin-stat-val">${s.byStatus.traded || 0}</span></div>
+          <div class="admin-stat-row"><span>selling</span><span class="admin-stat-val">${s.byType.selling || 0}</span></div>
+          <div class="admin-stat-row"><span>buying</span><span class="admin-stat-val">${s.byType.buying || 0}</span></div>
+        </div>
+        <div class="admin-stats-section">
+          <div class="cs-label">by provider</div>
+          ${s.byProvider.map(p => `
+            <div class="admin-stat-row">
+              <span>${esc(p.provider)}</span>
+              <span class="admin-stat-val">${p.count}</span>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  } catch (e) {
+    el.innerHTML = '<div class="grid-loading">error loading analytics</div>';
   }
 }
 
