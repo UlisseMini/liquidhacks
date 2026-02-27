@@ -100,7 +100,7 @@ function render() {
           <div class="card-price">${askVal}<span class="label">${item.type === 'selling' ? 'ask' : 'budget'}</span></div>
           <div class="card-user">
             ${item.avatarUrl
-              ? `<img class="card-av" src="${esc(item.avatarUrl)}" style="border-radius:50%" width="26" height="26">`
+              ? `<img class="card-av card-uname-link" src="${esc(item.avatarUrl)}" style="border-radius:50%;cursor:pointer" width="26" height="26" onclick="event.stopPropagation();openProfile('${item.username||''}')">`
               : `<div class="card-av">${initials}</div>`
             }
             <span class="card-uname card-uname-link" onclick="event.stopPropagation();openProfile('${item.username||"anon"}')">${esc(item.username || 'anon')}</span>
