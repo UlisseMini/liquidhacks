@@ -3,6 +3,8 @@ let currentUser = null;
 let allListings = [];
 let currentFilter = 'all';
 let editingId = null;
+let searchQuery = '';
+let providerFilter = '';
 
 // Init
 document.addEventListener('DOMContentLoaded', () => {
@@ -52,13 +54,31 @@ async function loadListings() {
   }
 }
 
+function getFiltered() {
+  const q = searchQuery.toLowerCase();
+  return allListings.filter(item => {
+    const matchesProvider = !providerFilter || item.provider === providerFilter;
+    const matchesSearch = !q ||
+      item.title.toLowerCase().includes(q) ||
+      (item.description || '').toLowerCase().includes(q) ||
+      item.provider.toLowerCase().includes(q) ||
+      (item.creditType || '').toLowerCase().includes(q);
+    return matchesProvider && matchesSearch;
+  });
+}
+
 function render() {
   const grid = document.getElementById('grid');
+  const listings = getFiltered();
   if (allListings.length === 0) {
     grid.innerHTML = '<div class="grid-loading">no listings yet — be the first to post</div>';
     return;
   }
-  grid.innerHTML = allListings.map((item, idx) => {
+  if (listings.length === 0) {
+    grid.innerHTML = '<div class="grid-loading">no results</div>';
+    return;
+  }
+  grid.innerHTML = listings.map((item, idx) => {
     const isMine = currentUser && item.userId === currentUser.id;
     const faceVal = item.faceValue ? `$${(item.faceValue / 100).toLocaleString()}` : '';
     const askVal = `$${(item.askingPrice / 100).toLocaleString()}`;
@@ -110,8 +130,25 @@ function revealContact(id) {
   if (el) el.classList.toggle('show');
 }
 
+function setSearch(val) {
+  searchQuery = val.toLowerCase();
+  render();
+}
+
+function setProvider(p, btn) {
+  if (providerFilter === p) {
+    providerFilter = '';
+    btn.classList.remove('on');
+  } else {
+    providerFilter = p;
+    document.querySelectorAll('.pill-provider').forEach(b => b.classList.remove('on'));
+    btn.classList.add('on');
+  }
+  render();
+}
+
 function fil(type, btn) {
-  document.querySelectorAll('.pill').forEach(p => p.classList.remove('on'));
+  document.querySelectorAll('.pill:not(.pill-provider)').forEach(p => p.classList.remove('on'));
   btn.classList.add('on');
   currentFilter = type;
   loadListings();
@@ -257,6 +294,8 @@ let chatListingId = null;
 let chatBuyerId = null;
 let chatPollTimer = null;
 let chatLastTimestamp = null;
+let chatListingData = null;
+let chatOtherUser = null;
 
 function openChat(listingId, listingOwnerId) {
   if (!currentUser) { toast('log in to chat', true); return; }
@@ -267,20 +306,25 @@ function openChat(listingId, listingOwnerId) {
   chatListingId = listingId;
   chatBuyerId = currentUser.id;
   chatLastTimestamp = null;
+  chatListingData = allListings.find(l => l.id === listingId) || null;
+  chatOtherUser = null;
   document.getElementById('chatMessages').innerHTML = '<div class="chat-empty">loading...</div>';
   document.getElementById('chatInput').value = '';
+  renderChatSidebar();
   openMo('chatMo');
   loadChatMessages(false);
   chatPollTimer = setInterval(() => loadChatMessages(true), 3000);
 }
 
 function openChatAs(listingId, buyerId) {
-  // Used from conversations list — works for both buyer and seller
   chatListingId = listingId;
   chatBuyerId = buyerId;
   chatLastTimestamp = null;
+  chatListingData = allListings.find(l => l.id === listingId) || null;
+  chatOtherUser = null;
   document.getElementById('chatMessages').innerHTML = '<div class="chat-empty">loading...</div>';
   document.getElementById('chatInput').value = '';
+  renderChatSidebar();
   closeMo('convListMo');
   openMo('chatMo');
   loadChatMessages(false);
@@ -293,6 +337,8 @@ function closeChatMo() {
   chatListingId = null;
   chatBuyerId = null;
   chatLastTimestamp = null;
+  chatListingData = null;
+  chatOtherUser = null;
 }
 
 async function loadChatMessages(pollOnly) {
@@ -304,33 +350,35 @@ async function loadChatMessages(pollOnly) {
     if (!res.ok) return;
     const data = await res.json();
 
-    if (pollOnly && data.messages.length === 0) return;
-
-    if (!pollOnly) {
-      document.getElementById('chatMoTitle').textContent = data.listing?.title || 'chat';
-    }
-
     const container = document.getElementById('chatMessages');
 
     if (!pollOnly) {
+      document.getElementById('chatMoTitle').textContent = data.listing?.title || 'chat';
+      chatOtherUser = data.otherUser || null;
+      if (!chatListingData && data.listing) chatListingData = data.listing;
+      renderChatSidebar();
       if (data.messages.length === 0) {
         container.innerHTML = '<div class="chat-empty">no messages yet — say hi!</div>';
       } else {
         container.innerHTML = data.messages.map(m => chatMsgHtml(m)).join('');
       }
     } else {
-      // Append new messages
+      if (data.messages.length === 0) return;
+      // Deduplicate: skip IDs already in DOM
+      const rendered = new Set([...container.querySelectorAll('[data-id]')].map(el => el.dataset.id));
+      const fresh = data.messages.filter(m => !rendered.has(m.id));
+      if (fresh.length === 0) {
+        chatLastTimestamp = data.messages[data.messages.length - 1].createdAt;
+        return;
+      }
       const emptyEl = container.querySelector('.chat-empty');
       if (emptyEl) emptyEl.remove();
-      container.insertAdjacentHTML('beforeend', data.messages.map(m => chatMsgHtml(m)).join(''));
+      container.insertAdjacentHTML('beforeend', fresh.map(m => chatMsgHtml(m)).join(''));
     }
 
-    // Update last timestamp
     if (data.messages.length > 0) {
       chatLastTimestamp = data.messages[data.messages.length - 1].createdAt;
     }
-
-    // Scroll to bottom
     container.scrollTop = container.scrollHeight;
   } catch (e) {
     // Silently fail on poll errors
@@ -340,7 +388,7 @@ async function loadChatMessages(pollOnly) {
 function chatMsgHtml(m) {
   const isOwn = currentUser && m.senderId === currentUser.id;
   const time = new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  return `<div class="chat-msg ${isOwn ? 'chat-msg--own' : ''}">${esc(m.body)}<div class="chat-msg-meta">${time}</div></div>`;
+  return `<div class="chat-msg ${isOwn ? 'chat-msg--own' : ''}" data-id="${m.id}">${esc(m.body)}<div class="chat-msg-meta">${time}</div></div>`;
 }
 
 async function sendChatMsg() {
@@ -350,7 +398,6 @@ async function sendChatMsg() {
   input.value = '';
   try {
     const payload = { body };
-    // If we're the seller (chatBuyerId !== our id), send buyerId
     if (currentUser && currentUser.id !== chatBuyerId) {
       payload.buyerId = chatBuyerId;
     }
@@ -362,9 +409,11 @@ async function sendChatMsg() {
     if (res.ok) {
       const msg = await res.json();
       const container = document.getElementById('chatMessages');
-      const emptyEl = container.querySelector('.chat-empty');
-      if (emptyEl) emptyEl.remove();
-      container.insertAdjacentHTML('beforeend', chatMsgHtml(msg));
+      if (!container.querySelector(`[data-id="${msg.id}"]`)) {
+        const emptyEl = container.querySelector('.chat-empty');
+        if (emptyEl) emptyEl.remove();
+        container.insertAdjacentHTML('beforeend', chatMsgHtml(msg));
+      }
       chatLastTimestamp = msg.createdAt;
       container.scrollTop = container.scrollHeight;
     } else {
@@ -374,6 +423,57 @@ async function sendChatMsg() {
   } catch (e) {
     toast('network error', true);
   }
+}
+
+function renderChatSidebar() {
+  const sidebar = document.getElementById('chatSidebar');
+  if (!sidebar) return;
+  const l = chatListingData;
+  const other = chatOtherUser;
+  const faceVal = l?.faceValue ? `$${(l.faceValue / 100).toLocaleString()}` : null;
+  const askVal = l?.askingPrice ? `$${(l.askingPrice / 100).toLocaleString()}` : null;
+  const otherListings = l ? allListings.filter(x => x.userId === l.userId && x.id !== l.id).slice(0, 3) : [];
+
+  sidebar.innerHTML = `
+    <div class="cs-section">
+      <div class="cs-label">counterparty</div>
+      ${other
+        ? `<div class="cs-user">
+            ${other.avatarUrl ? `<img class="cs-av" src="${esc(other.avatarUrl)}">` : `<div class="cs-av cs-av--init">${(other.username||'??').slice(0,2).toUpperCase()}</div>`}
+            <div class="cs-username">${esc(other.username || 'unknown')}</div>
+           </div>`
+        : `<div class="cs-dim">loading...</div>`}
+    </div>
+    ${l ? `
+      <div class="cs-section">
+        <div class="cs-label">this listing</div>
+        <div class="cs-listing-title">${esc(l.title || '')}</div>
+        <div class="cs-tags">
+          ${l.provider ? `<span class="cs-tag">${esc(l.provider)}</span>` : ''}
+          ${l.creditType ? `<span class="cs-tag">${esc(l.creditType)}</span>` : ''}
+        </div>
+        <div class="cs-prices">
+          ${faceVal ? `<div class="cs-price-row"><span class="cs-dim">face</span><span>${faceVal}</span></div>` : ''}
+          ${askVal ? `<div class="cs-price-row"><span class="cs-dim">ask</span><span class="cs-neon">${askVal}</span></div>` : ''}
+        </div>
+        ${l.description ? `<div class="cs-desc">${esc(l.description)}</div>` : ''}
+        ${l.proofLink ? `<div class="cs-row"><span class="cs-dim">proof</span><a href="${esc(l.proofLink)}" target="_blank" rel="noopener" class="cs-link">view ↗</a></div>` : ''}
+        ${l.contactInfo ? `<div class="cs-row"><span class="cs-dim">contact</span><span class="cs-neon-text">${esc(l.contactInfo)}</span></div>` : ''}
+      </div>
+    ` : ''}
+    ${otherListings.length > 0 ? `
+      <div class="cs-section">
+        <div class="cs-label">their other listings</div>
+        ${otherListings.map(x => `
+          <div class="cs-other" onclick="closeChatMo();setTimeout(()=>openChat('${x.id}','${x.userId}'),150)">
+            <span class="cs-tag cs-tag--${x.type === 'selling' ? 'sell' : 'buy'}">${x.type}</span>
+            <span class="cs-other-title">${esc(x.title)}</span>
+            <span class="cs-other-price">$${(x.askingPrice/100).toLocaleString()}</span>
+          </div>
+        `).join('')}
+      </div>
+    ` : ''}
+  `;
 }
 
 async function openConversations() {
@@ -416,8 +516,12 @@ async function openConversations() {
 function scrollToFeed() {
   // Reset filter to "all" when browsing (fixes "my listings" → "browse" flow)
   currentFilter = 'all';
+  searchQuery = '';
+  providerFilter = '';
+  const si = document.getElementById('searchInput');
+  if (si) si.value = '';
   document.querySelectorAll('.pill').forEach(p => p.classList.remove('on'));
-  const allPill = document.querySelector('.pill');
+  const allPill = document.querySelector('.pill:not(.pill-provider)');
   if (allPill) allPill.classList.add('on');
   loadListings();
   document.getElementById('feed').scrollIntoView({ behavior: 'smooth' });

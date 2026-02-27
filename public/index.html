@@ -91,6 +91,16 @@
         <button class="pill" onclick="fil('buying',this)">buying</button>
       </div>
     </div>
+    <div class="sec-search">
+      <input class="fi search-input" type="text" id="searchInput" placeholder="search listings..." oninput="setSearch(this.value)">
+      <div class="pills">
+        <button class="pill pill-provider" onclick="setProvider('Anthropic',this)">Anthropic</button>
+        <button class="pill pill-provider" onclick="setProvider('OpenAI',this)">OpenAI</button>
+        <button class="pill pill-provider" onclick="setProvider('Vercel',this)">Vercel</button>
+        <button class="pill pill-provider" onclick="setProvider('Google Cloud',this)">GCP</button>
+        <button class="pill pill-provider" onclick="setProvider('AWS',this)">AWS</button>
+      </div>
+    </div>
     <div class="grid" id="grid">
       <div class="grid-loading">loading listings...</div>
     </div>
@@ -178,14 +188,19 @@
   <!-- Chat Modal -->
   <div class="mo" id="chatMo" onclick="if(event.target===this)closeChatMo()">
     <div class="mo-box mo-box--chat">
-      <div class="mo-head">
-        <h3 id="chatMoTitle">chat</h3>
-        <button class="mo-x" onclick="closeChatMo()">&times;</button>
-      </div>
-      <div class="chat-messages" id="chatMessages"></div>
-      <div class="chat-input-row">
-        <input class="fi chat-input" id="chatInput" type="text" placeholder="type a message..." onkeydown="if(event.key==='Enter')sendChatMsg()">
-        <button class="btn-sketch btn-sketch--fill chat-send" onclick="sendChatMsg()">send</button>
+      <div class="chat-layout">
+        <div class="chat-main">
+          <div class="mo-head">
+            <h3 id="chatMoTitle">chat</h3>
+            <button class="mo-x" onclick="closeChatMo()">&times;</button>
+          </div>
+          <div class="chat-messages" id="chatMessages"></div>
+          <div class="chat-input-row">
+            <input class="fi chat-input" id="chatInput" type="text" placeholder="type a message..." onkeydown="if(event.key==='Enter')sendChatMsg()">
+            <button class="btn-sketch btn-sketch--fill chat-send" onclick="sendChatMsg()">send</button>
+          </div>
+        </div>
+        <div class="chat-sidebar" id="chatSidebar"></div>
       </div>
     </div>
   </div>
