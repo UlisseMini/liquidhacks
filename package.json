@@ -14,12 +14,12 @@
     "@hono/node-server": "^1",
     "drizzle-orm": "^0.38",
     "postgres": "^3",
-    "jose": "^6"
-  },
-  "devDependencies": {
+    "jose": "^6",
     "typescript": "^5",
-    "tsx": "^4",
     "drizzle-kit": "^0.30",
     "@types/node": "^22"
+  },
+  "devDependencies": {
+    "tsx": "^4"
   }
 }
