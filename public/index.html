@@ -27,6 +27,7 @@
         <img class="nav-avatar" id="navAvatar" src="" alt="">
         <span class="nav-username" id="navUsername"></span>
         <button class="nav-btn" onclick="showMyListings()">my listings</button>
+        <button class="nav-btn" onclick="openConversations()">messages</button>
         <button class="nav-btn" onclick="logout()">log out</button>
         <button class="nav-btn nav-btn--go" onclick="openMo('postMo')">+ sell</button>
       </div>
@@ -170,6 +171,34 @@
       <div class="mo-foot">
         <button class="btn-sketch btn-sketch--ghost" onclick="closeMo('postMo')">cancel</button>
         <button class="btn-sketch btn-sketch--fill" onclick="submitListing()">post</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Chat Modal -->
+  <div class="mo" id="chatMo" onclick="if(event.target===this)closeChatMo()">
+    <div class="mo-box mo-box--chat">
+      <div class="mo-head">
+        <h3 id="chatMoTitle">chat</h3>
+        <button class="mo-x" onclick="closeChatMo()">&times;</button>
+      </div>
+      <div class="chat-messages" id="chatMessages"></div>
+      <div class="chat-input-row">
+        <input class="fi chat-input" id="chatInput" type="text" placeholder="type a message..." onkeydown="if(event.key==='Enter')sendChatMsg()">
+        <button class="btn-sketch btn-sketch--fill chat-send" onclick="sendChatMsg()">send</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Conversations List Modal -->
+  <div class="mo" id="convListMo" onclick="if(event.target===this)closeMo('convListMo')">
+    <div class="mo-box mo-box--chat">
+      <div class="mo-head">
+        <h3>messages</h3>
+        <button class="mo-x" onclick="closeMo('convListMo')">&times;</button>
+      </div>
+      <div class="mo-body conv-list" id="convList">
+        <div class="grid-loading">loading conversations...</div>
       </div>
     </div>
   </div>

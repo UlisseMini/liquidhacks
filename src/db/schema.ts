@@ -1,4 +1,4 @@
-import { pgTable, uuid, integer, text, timestamp } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, integer, text, timestamp, index } from 'drizzle-orm/pg-core';
 
 export const users = pgTable('users', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -23,3 +23,14 @@ export const listings = pgTable('listings', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
+
+export const messages = pgTable('messages', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  listingId: uuid('listing_id').references(() => listings.id, { onDelete: 'cascade' }).notNull(),
+  senderId: uuid('sender_id').references(() => users.id).notNull(),
+  buyerId: uuid('buyer_id').references(() => users.id).notNull(),
+  body: text('body').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => [
+  index('messages_conv_idx').on(table.listingId, table.buyerId, table.createdAt),
+]);

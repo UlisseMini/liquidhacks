@@ -84,7 +84,7 @@ function render() {
               : `<div class="card-av">${initials}</div>`
             }
             <span class="card-uname">${esc(item.username || 'anon')}</span>
-            <button class="card-msg" onclick="event.stopPropagation();revealContact('${item.id}')">contact</button>
+            <button class="card-msg" onclick="event.stopPropagation();openChat('${item.id}','${item.userId}')">contact</button>
           </div>
         </div>
         <div class="card-contact" id="contact-${item.id}">${esc(item.contactInfo || '')}</div>
@@ -133,7 +133,7 @@ function showMyListings() {
   allListings = saved;
 
   document.querySelectorAll('.pill').forEach(p => p.classList.remove('on'));
-  scrollToFeed();
+  document.getElementById('feed').scrollIntoView({ behavior: 'smooth' });
 }
 
 // CRUD
@@ -252,7 +252,173 @@ function toast(msg, isError) {
   setTimeout(() => { t.className = 'toast'; }, 2500);
 }
 
+// Chat state
+let chatListingId = null;
+let chatBuyerId = null;
+let chatPollTimer = null;
+let chatLastTimestamp = null;
+
+function openChat(listingId, listingOwnerId) {
+  if (!currentUser) { toast('log in to chat', true); return; }
+  if (currentUser.id === listingOwnerId) {
+    toast('check messages for buyer chats', true);
+    return;
+  }
+  chatListingId = listingId;
+  chatBuyerId = currentUser.id;
+  chatLastTimestamp = null;
+  document.getElementById('chatMessages').innerHTML = '<div class="chat-empty">loading...</div>';
+  document.getElementById('chatInput').value = '';
+  openMo('chatMo');
+  loadChatMessages(false);
+  chatPollTimer = setInterval(() => loadChatMessages(true), 3000);
+}
+
+function openChatAs(listingId, buyerId) {
+  // Used from conversations list — works for both buyer and seller
+  chatListingId = listingId;
+  chatBuyerId = buyerId;
+  chatLastTimestamp = null;
+  document.getElementById('chatMessages').innerHTML = '<div class="chat-empty">loading...</div>';
+  document.getElementById('chatInput').value = '';
+  closeMo('convListMo');
+  openMo('chatMo');
+  loadChatMessages(false);
+  chatPollTimer = setInterval(() => loadChatMessages(true), 3000);
+}
+
+function closeChatMo() {
+  closeMo('chatMo');
+  if (chatPollTimer) { clearInterval(chatPollTimer); chatPollTimer = null; }
+  chatListingId = null;
+  chatBuyerId = null;
+  chatLastTimestamp = null;
+}
+
+async function loadChatMessages(pollOnly) {
+  if (!chatListingId || !chatBuyerId) return;
+  try {
+    let url = `/api/chat/${chatListingId}/messages?buyerId=${chatBuyerId}`;
+    if (pollOnly && chatLastTimestamp) url += `&after=${encodeURIComponent(chatLastTimestamp)}`;
+    const res = await fetch(url);
+    if (!res.ok) return;
+    const data = await res.json();
+
+    if (pollOnly && data.messages.length === 0) return;
+
+    if (!pollOnly) {
+      document.getElementById('chatMoTitle').textContent = data.listing?.title || 'chat';
+    }
+
+    const container = document.getElementById('chatMessages');
+
+    if (!pollOnly) {
+      if (data.messages.length === 0) {
+        container.innerHTML = '<div class="chat-empty">no messages yet — say hi!</div>';
+      } else {
+        container.innerHTML = data.messages.map(m => chatMsgHtml(m)).join('');
+      }
+    } else {
+      // Append new messages
+      const emptyEl = container.querySelector('.chat-empty');
+      if (emptyEl) emptyEl.remove();
+      container.insertAdjacentHTML('beforeend', data.messages.map(m => chatMsgHtml(m)).join(''));
+    }
+
+    // Update last timestamp
+    if (data.messages.length > 0) {
+      chatLastTimestamp = data.messages[data.messages.length - 1].createdAt;
+    }
+
+    // Scroll to bottom
+    container.scrollTop = container.scrollHeight;
+  } catch (e) {
+    // Silently fail on poll errors
+  }
+}
+
+function chatMsgHtml(m) {
+  const isOwn = currentUser && m.senderId === currentUser.id;
+  const time = new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  return `<div class="chat-msg ${isOwn ? 'chat-msg--own' : ''}">${esc(m.body)}<div class="chat-msg-meta">${time}</div></div>`;
+}
+
+async function sendChatMsg() {
+  const input = document.getElementById('chatInput');
+  const body = input.value.trim();
+  if (!body || !chatListingId) return;
+  input.value = '';
+  try {
+    const payload = { body };
+    // If we're the seller (chatBuyerId !== our id), send buyerId
+    if (currentUser && currentUser.id !== chatBuyerId) {
+      payload.buyerId = chatBuyerId;
+    }
+    const res = await fetch(`/api/chat/${chatListingId}/messages`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (res.ok) {
+      const msg = await res.json();
+      const container = document.getElementById('chatMessages');
+      const emptyEl = container.querySelector('.chat-empty');
+      if (emptyEl) emptyEl.remove();
+      container.insertAdjacentHTML('beforeend', chatMsgHtml(msg));
+      chatLastTimestamp = msg.createdAt;
+      container.scrollTop = container.scrollHeight;
+    } else {
+      const err = await res.json();
+      toast(err.error || 'failed to send', true);
+    }
+  } catch (e) {
+    toast('network error', true);
+  }
+}
+
+async function openConversations() {
+  if (!currentUser) { toast('log in first', true); return; }
+  openMo('convListMo');
+  const container = document.getElementById('convList');
+  container.innerHTML = '<div class="grid-loading">loading...</div>';
+  try {
+    const res = await fetch('/api/chat/conversations');
+    if (!res.ok) { container.innerHTML = '<div class="grid-loading">failed to load</div>'; return; }
+    const convos = await res.json();
+    if (convos.length === 0) {
+      container.innerHTML = '<div class="grid-loading">no conversations yet</div>';
+      return;
+    }
+    container.innerHTML = convos.map(c => {
+      const timeStr = new Date(c.lastAt).toLocaleDateString([], { month: 'short', day: 'numeric' });
+      const initials = (c.otherUsername || '??').slice(0, 2).toUpperCase();
+      const avHtml = c.otherAvatarUrl
+        ? `<img src="${esc(c.otherAvatarUrl)}">`
+        : initials;
+      return `<div class="conv-item" onclick="openChatAs('${c.listingId}','${c.buyerId}')">
+        <div class="conv-item-av">${avHtml}</div>
+        <div class="conv-item-info">
+          <div class="conv-item-top">
+            <span class="conv-item-name">${esc(c.otherUsername)}</span>
+            <span class="conv-item-time">${timeStr}</span>
+          </div>
+          <div class="conv-item-listing">${esc(c.listingTitle)}</div>
+          <div class="conv-item-preview">${esc(c.lastBody)}</div>
+        </div>
+      </div>`;
+    }).join('');
+  } catch (e) {
+    container.innerHTML = '<div class="grid-loading">network error</div>';
+  }
+}
+
 // Scroll
 function scrollToFeed() {
+  // Reset filter to "all" when browsing (fixes "my listings" → "browse" flow)
+  currentFilter = 'all';
+  document.querySelectorAll('.pill').forEach(p => p.classList.remove('on'));
+  const allPill = document.querySelector('.pill');
+  if (allPill) allPill.classList.add('on');
+  loadListings();
   document.getElementById('feed').scrollIntoView({ behavior: 'smooth' });
 }
