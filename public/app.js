@@ -576,6 +576,7 @@ async function loadProfileInto(username, body) {
         <div class="profile-info">
           <div class="profile-username">${esc(user.username)}</div>
           <div class="profile-since">member since ${since}</div>
+          ${!isOwnProfile ? `<button class="btn-sketch btn-sketch--fill profile-dm-btn" onclick="openDm('${user.id}','${esc(user.username)}')">send message</button>` : ''}
         </div>
       </div>
       <div class="profile-stats">
@@ -646,4 +647,82 @@ function hideProfilePreview() {
   clearTimeout(previewTimer);
   const preview = document.getElementById('profilePreview');
   if (preview) preview.classList.remove('show');
+}
+
+// ── Direct Messages ───────────────────────────────────
+let dmUserId = null;
+let dmPollTimer = null;
+let dmLastTimestamp = null;
+
+function openDm(userId, username) {
+  if (!currentUser) { toast('log in first', true); return; }
+  dmUserId = userId;
+  dmLastTimestamp = null;
+  document.getElementById('dmMoTitle').textContent = `@ ${username}`;
+  document.getElementById('dmMessages').innerHTML = '<div class="chat-empty">loading...</div>';
+  document.getElementById('dmInput').value = '';
+  openMo('dmMo');
+  loadDmMessages(false);
+  dmPollTimer = setInterval(() => loadDmMessages(true), 3000);
+}
+
+function closeDmMo() {
+  closeMo('dmMo');
+  if (dmPollTimer) { clearInterval(dmPollTimer); dmPollTimer = null; }
+  dmUserId = null;
+  dmLastTimestamp = null;
+}
+
+async function loadDmMessages(pollOnly) {
+  if (!dmUserId) return;
+  try {
+    let url = `/api/dm/${dmUserId}`;
+    if (pollOnly && dmLastTimestamp) url += `?after=${encodeURIComponent(dmLastTimestamp)}`;
+    const res = await fetch(url);
+    if (!res.ok) return;
+    const data = await res.json();
+    const container = document.getElementById('dmMessages');
+
+    if (!pollOnly) {
+      container.innerHTML = data.messages.length === 0
+        ? '<div class="chat-empty">no messages yet — say hi!</div>'
+        : data.messages.map(m => chatMsgHtml(m)).join('');
+    } else {
+      if (!data.messages.length) return;
+      const rendered = new Set([...container.querySelectorAll('[data-id]')].map(el => el.dataset.id));
+      const fresh = data.messages.filter(m => !rendered.has(m.id));
+      if (!fresh.length) { dmLastTimestamp = data.messages.at(-1).createdAt; return; }
+      container.querySelector('.chat-empty')?.remove();
+      container.insertAdjacentHTML('beforeend', fresh.map(m => chatMsgHtml(m)).join(''));
+    }
+
+    if (data.messages.length) dmLastTimestamp = data.messages.at(-1).createdAt;
+    container.scrollTop = container.scrollHeight;
+  } catch (e) {}
+}
+
+async function sendDmMsg() {
+  const input = document.getElementById('dmInput');
+  const body = input.value.trim();
+  if (!body || !dmUserId) return;
+  input.value = '';
+  try {
+    const res = await fetch(`/api/dm/${dmUserId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ body }),
+    });
+    if (res.ok) {
+      const msg = await res.json();
+      const container = document.getElementById('dmMessages');
+      if (!container.querySelector(`[data-id="${msg.id}"]`)) {
+        container.querySelector('.chat-empty')?.remove();
+        container.insertAdjacentHTML('beforeend', chatMsgHtml(msg));
+      }
+      dmLastTimestamp = msg.createdAt;
+      container.scrollTop = container.scrollHeight;
+    } else {
+      toast((await res.json()).error || 'failed to send', true);
+    }
+  } catch (e) { toast('network error', true); }
 }

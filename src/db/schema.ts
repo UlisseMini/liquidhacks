@@ -20,9 +20,20 @@ export const listings = pgTable('listings', {
   creditType: text('credit_type').notNull(), // 'redemption code' | 'API key' | 'account login' | 'org invite'
   proofLink: text('proof_link'),
   contactInfo: text('contact_info').notNull(),
+  status: text('status').default('active').notNull(), // 'active' | 'traded'
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
+
+export const directMessages = pgTable('direct_messages', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  senderId: uuid('sender_id').references(() => users.id).notNull(),
+  receiverId: uuid('receiver_id').references(() => users.id).notNull(),
+  body: text('body').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => [
+  index('dm_conv_idx').on(table.senderId, table.receiverId, table.createdAt),
+]);
 
 export const messages = pgTable('messages', {
   id: uuid('id').primaryKey().defaultRandom(),

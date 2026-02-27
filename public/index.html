@@ -197,7 +197,26 @@
   </div>
 
 
-  <!-- Chat Modal -->
+  <!-- DM Modal -->
+  <div class="mo" id="dmMo" onclick="if(event.target===this)closeDmMo()">
+    <div class="mo-box mo-box--chat">
+      <div class="chat-layout">
+        <div class="chat-main">
+          <div class="mo-head">
+            <h3 id="dmMoTitle">direct message</h3>
+            <button class="mo-x" onclick="closeDmMo()">&times;</button>
+          </div>
+          <div class="chat-messages" id="dmMessages"></div>
+          <div class="chat-input-row">
+            <input class="fi chat-input" id="dmInput" type="text" placeholder="type a message..." onkeydown="if(event.key==='Enter')sendDmMsg()">
+            <button class="btn-sketch btn-sketch--fill chat-send" onclick="sendDmMsg()">send</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+    <!-- Chat Modal -->
   <div class="mo" id="chatMo" onclick="if(event.target===this)closeChatMo()">
     <div class="mo-box mo-box--chat">
       <div class="chat-layout">
