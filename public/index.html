@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LiquidHacks</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Rubik+Glitch&family=IBM+Plex+Mono:wght@300;400;500;600;700&family=Syne:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+
+  <nav>
+    <a href="/" class="nav-logo">LiquidHacks</a>
+    <div class="nav-r">
+      <button class="nav-btn" onclick="scrollToFeed()">browse</button>
+
+      <!-- Logged out state -->
+      <div class="nav-logged-out" id="navLoggedOut">
+        <a href="/api/auth/github" class="nav-btn">log in with github</a>
+        <button class="nav-btn nav-btn--go" onclick="openMo('postMo')">+ sell</button>
+      </div>
+
+      <!-- Logged in state -->
+      <div class="nav-logged-in" id="navLoggedIn">
+        <img class="nav-avatar" id="navAvatar" src="" alt="">
+        <span class="nav-username" id="navUsername"></span>
+        <button class="nav-btn" onclick="showMyListings()">my listings</button>
+        <button class="nav-btn" onclick="logout()">log out</button>
+        <button class="nav-btn nav-btn--go" onclick="openMo('postMo')">+ sell</button>
+      </div>
+    </div>
+  </nav>
+
+  <section class="hero">
+    <div class="hero-warning"><span class="blink">&#9679;</span> unregulated p2p market &mdash; trade at your own risk</div>
+    <h1>turn <span class="g">hackathon</span> credits into <span class="cash-text">cash</span></h1>
+    <p class="hero-sub">Won API credits you'll never burn? <strong>Flip them.</strong> Need cheap compute for your side project? <strong>Buy from other hackers.</strong> Direct deals, no middlemen, no paper trail.</p>
+    <div class="hero-actions">
+      <button class="btn-sketch btn-sketch--fill" onclick="scrollToFeed()">browse listings</button>
+      <button class="btn-sketch btn-sketch--ghost" onclick="openMo('postMo')">post credits</button>
+    </div>
+  </section>
+
+  <!-- TICKER -->
+  <div class="ticker">
+    <div class="ticker-inner">
+      <span class="ticker-item"><span class="val">$12.4K</span> total listed</span>
+      <span class="ticker-item"><span class="val">47</span> live listings</span>
+      <span class="ticker-item"><span class="hot-val">23</span> trades closed</span>
+      <span class="ticker-item">OpenAI &bull; Anthropic &bull; GCP &bull; AWS &bull; Vercel</span>
+      <span class="ticker-item"><span class="val">40-60%</span> avg discount</span>
+      <span class="ticker-item">no kyc &bull; no fees &bull; p2p only</span>
+      <span class="ticker-item"><span class="val">$12.4K</span> total listed</span>
+      <span class="ticker-item"><span class="val">47</span> live listings</span>
+      <span class="ticker-item"><span class="hot-val">23</span> trades closed</span>
+      <span class="ticker-item">OpenAI &bull; Anthropic &bull; GCP &bull; AWS &bull; Vercel</span>
+      <span class="ticker-item"><span class="val">40-60%</span> avg discount</span>
+      <span class="ticker-item">no kyc &bull; no fees &bull; p2p only</span>
+    </div>
+  </div>
+
+  <!-- HOW IT WORKS -->
+  <div class="how-bar">
+    <div class="how-step">
+      <div class="how-n">01</div>
+      <h3>List it</h3>
+      <p>Post credits with proof — devpost link, screenshot, whatever. Buyers need to trust the source.</p>
+    </div>
+    <div class="how-step">
+      <div class="how-n">02</div>
+      <h3>Connect</h3>
+      <p>Buyer sees your contact info. Negotiate price, method, timeline directly.</p>
+    </div>
+    <div class="how-step">
+      <div class="how-n">03</div>
+      <h3>Swap</h3>
+      <p>Transfer credits, get paid. Venmo, crypto, whatever you agree on. Both confirm, done.</p>
+    </div>
+  </div>
+
+  <!-- LISTINGS -->
+  <section class="section" id="feed">
+    <div class="sec-head">
+      <div class="sec-title"><span class="live-dot"></span> live feed</div>
+      <div class="pills">
+        <button class="pill on" onclick="fil('all',this)">all</button>
+        <button class="pill" onclick="fil('selling',this)">selling</button>
+        <button class="pill" onclick="fil('buying',this)">buying</button>
+      </div>
+    </div>
+    <div class="grid" id="grid">
+      <div class="grid-loading">loading listings...</div>
+    </div>
+  </section>
+
+  <div class="disclaimer">
+    all trades are peer-to-peer. liquidhacks is a bulletin board, not an escrow.
+    verify credits independently before sending payment. we don't intermediate or guarantee anything.
+  </div>
+
+  <footer>
+    <span>liquidhacks &mdash; api credit grey market</span>
+    <span>dyor &bull; caveat emptor</span>
+  </footer>
+
+  <!-- Post Modal -->
+  <div class="mo" id="postMo" onclick="if(event.target===this)closeMo('postMo')">
+    <div class="mo-box">
+      <div class="mo-head">
+        <h3 id="postMoTitle">New listing</h3>
+        <button class="mo-x" onclick="closeMo('postMo')">&times;</button>
+      </div>
+      <div class="mo-body">
+        <div class="fg">
+          <label>type</label>
+          <select class="fi fi-sel" id="postType">
+            <option value="selling">selling</option>
+            <option value="buying">buying</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label>provider</label>
+          <select class="fi fi-sel" id="postProvider">
+            <option>OpenAI</option>
+            <option>Anthropic</option>
+            <option>Google Cloud</option>
+            <option>AWS</option>
+            <option>Vercel</option>
+            <option>Other</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label>title</label>
+          <input class="fi" type="text" id="postTitle" placeholder="$500 OpenAI credits from HackMIT">
+        </div>
+        <div class="fg-row">
+          <div class="fg">
+            <label>face value</label>
+            <input class="fi" type="text" id="postFaceValue" placeholder="$500">
+          </div>
+          <div class="fg">
+            <label>your price</label>
+            <input class="fi" type="text" id="postAskingPrice" placeholder="$200">
+          </div>
+        </div>
+        <div class="fg">
+          <label>credit type</label>
+          <select class="fi fi-sel" id="postCreditType">
+            <option value="redemption code">redemption code</option>
+            <option value="API key">API key</option>
+            <option value="account login">account login</option>
+            <option value="org invite">org invite</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label>details</label>
+          <textarea class="fi fi-ta" id="postDescription" placeholder="expiry, transfer method, proof..."></textarea>
+        </div>
+        <div class="fg">
+          <label>proof link</label>
+          <input class="fi" type="url" id="postProofLink" placeholder="https://devpost.com/software/...">
+        </div>
+        <div class="fg">
+          <label>contact info (shown to buyers)</label>
+          <input class="fi" type="text" id="postContactInfo" placeholder="telegram: @you, discord: you#1234, email...">
+        </div>
+      </div>
+      <div class="mo-foot">
+        <button class="btn-sketch btn-sketch--ghost" onclick="closeMo('postMo')">cancel</button>
+        <button class="btn-sketch btn-sketch--fill" onclick="submitListing()">post</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast"></div>
+
+  <script src="/app.js"></script>
+</body>
+</html>

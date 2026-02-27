@@ -1,0 +1,1108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LiquidHacks</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Rubik+Glitch&family=IBM+Plex+Mono:wght@300;400;500;600;700&family=Syne:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0d0d0d;
+      --bg2: #141414;
+      --card: #1a1a1a;
+      --card-hover: #222;
+      --border: #2a2a2a;
+      --border-hot: #333;
+      --text: #e8e8e8;
+      --dim: #777;
+      --muted: #555;
+      --neon: #39ff14;
+      --neon-dim: rgba(57, 255, 20, 0.07);
+      --neon-glow: rgba(57, 255, 20, 0.25);
+      --hot: #ff3131;
+      --hot-dim: rgba(255, 49, 49, 0.08);
+      --cash: #ffd700;
+      --cash-dim: rgba(255, 215, 0, 0.08);
+      --purple: #b44aff;
+      --purple-dim: rgba(180, 74, 255, 0.08);
+      --glitch: 'Rubik Glitch', cursive;
+      --mono: 'IBM Plex Mono', monospace;
+      --head: 'Syne', sans-serif;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 13px;
+      min-height: 100vh;
+      cursor: crosshair;
+    }
+
+    ::selection { background: var(--neon); color: var(--bg); }
+
+    /* Scanline overlay */
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      z-index: 9998;
+      pointer-events: none;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0,0,0,0.08) 2px,
+        rgba(0,0,0,0.08) 4px
+      );
+    }
+
+    /* Flicker animation for accents */
+    @keyframes flicker {
+      0%, 95%, 100% { opacity: 1; }
+      96% { opacity: 0.4; }
+      97% { opacity: 1; }
+      98% { opacity: 0.6; }
+    }
+
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes glitchShift {
+      0%, 90%, 100% { transform: translate(0); }
+      92% { transform: translate(-2px, 1px); }
+      94% { transform: translate(2px, -1px); }
+      96% { transform: translate(-1px, -1px); }
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
+
+    /* NAV */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 28px;
+      height: 52px;
+      background: rgba(13,13,13,0.92);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .nav-logo {
+      font-family: var(--glitch);
+      font-size: 20px;
+      color: var(--neon);
+      text-decoration: none;
+      animation: flicker 4s infinite;
+      text-shadow: 0 0 8px var(--neon-glow), 0 0 20px rgba(57,255,20,0.1);
+    }
+
+    .nav-r {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+    }
+
+    .nav-btn {
+      padding: 7px 16px;
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--dim);
+      background: none;
+      border: none;
+      cursor: pointer;
+      transition: color 0.1s;
+      text-transform: lowercase;
+    }
+
+    .nav-btn:hover { color: var(--text); }
+
+    .nav-btn--go {
+      color: var(--bg);
+      background: var(--neon);
+      margin-left: 8px;
+      font-weight: 700;
+      border: none;
+      animation: flicker 5s infinite;
+    }
+
+    .nav-btn--go:hover {
+      box-shadow: 0 0 16px var(--neon-glow);
+    }
+
+    /* HERO */
+    .hero {
+      padding: 100px 28px 60px;
+      max-width: 820px;
+      margin: 0 auto;
+      text-align: center;
+      position: relative;
+    }
+
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: 40px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 500px;
+      height: 500px;
+      background: radial-gradient(circle, rgba(57,255,20,0.04) 0%, transparent 60%);
+      pointer-events: none;
+    }
+
+    .hero-warning {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 5px 14px;
+      background: var(--hot-dim);
+      border: 1px solid rgba(255,49,49,0.25);
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--hot);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 28px;
+      animation: slideUp 0.4s ease both;
+    }
+
+    .hero-warning .blink {
+      animation: blink 1s step-end infinite;
+    }
+
+    .hero h1 {
+      font-family: var(--head);
+      font-size: clamp(44px, 7vw, 78px);
+      font-weight: 800;
+      line-height: 0.95;
+      letter-spacing: -0.04em;
+      margin-bottom: 20px;
+      animation: slideUp 0.4s ease 0.1s both;
+    }
+
+    .hero h1 .g {
+      font-family: var(--glitch);
+      color: var(--neon);
+      text-shadow: 0 0 12px var(--neon-glow);
+      animation: glitchShift 6s infinite;
+      display: inline-block;
+    }
+
+    .hero h1 .cash-text {
+      color: var(--cash);
+      text-shadow: 0 0 10px rgba(255,215,0,0.2);
+    }
+
+    .hero-sub {
+      font-size: 14px;
+      color: var(--dim);
+      max-width: 480px;
+      margin: 0 auto 32px;
+      line-height: 1.7;
+      font-weight: 300;
+      animation: slideUp 0.4s ease 0.2s both;
+    }
+
+    .hero-sub strong {
+      color: var(--text);
+      font-weight: 500;
+    }
+
+    .hero-actions {
+      display: flex;
+      gap: 0;
+      justify-content: center;
+      animation: slideUp 0.4s ease 0.3s both;
+    }
+
+    .btn-sketch {
+      padding: 12px 28px;
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 600;
+      border: 1px solid var(--neon);
+      cursor: pointer;
+      transition: all 0.12s;
+      text-transform: lowercase;
+      text-decoration: none;
+    }
+
+    .btn-sketch--fill {
+      background: var(--neon);
+      color: var(--bg);
+    }
+
+    .btn-sketch--fill:hover {
+      box-shadow: 0 0 20px var(--neon-glow), inset 0 0 20px rgba(0,0,0,0.1);
+      transform: translateY(-1px);
+    }
+
+    .btn-sketch--ghost {
+      background: transparent;
+      color: var(--neon);
+      border-left: none;
+    }
+
+    .btn-sketch--ghost:hover {
+      background: var(--neon-dim);
+    }
+
+    /* TICKER */
+    .ticker {
+      overflow: hidden;
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      padding: 10px 0;
+      margin-bottom: 0;
+    }
+
+    .ticker-inner {
+      display: flex;
+      gap: 48px;
+      animation: tickerScroll 20s linear infinite;
+      width: max-content;
+    }
+
+    @keyframes tickerScroll {
+      from { transform: translateX(0); }
+      to { transform: translateX(-50%); }
+    }
+
+    .ticker-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 11px;
+      color: var(--dim);
+      white-space: nowrap;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .ticker-item .val {
+      color: var(--neon);
+      font-weight: 700;
+    }
+
+    .ticker-item .hot-val {
+      color: var(--hot);
+      font-weight: 700;
+    }
+
+    /* LISTINGS */
+    .section {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 40px 28px 60px;
+    }
+
+    .sec-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .sec-title {
+      font-family: var(--head);
+      font-size: 20px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.02em;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .sec-title .live-dot {
+      width: 7px;
+      height: 7px;
+      background: var(--neon);
+      border-radius: 50%;
+      box-shadow: 0 0 6px var(--neon-glow);
+      animation: blink 2s ease-in-out infinite;
+    }
+
+    .pills {
+      display: flex;
+      gap: 4px;
+    }
+
+    .pill {
+      padding: 5px 14px;
+      font-family: var(--mono);
+      font-size: 10px;
+      font-weight: 500;
+      color: var(--muted);
+      background: transparent;
+      border: 1px solid var(--border);
+      cursor: pointer;
+      transition: all 0.1s;
+      text-transform: lowercase;
+    }
+
+    .pill:hover { color: var(--dim); border-color: var(--border-hot); }
+
+    .pill.on {
+      color: var(--neon);
+      border-color: var(--neon);
+      background: var(--neon-dim);
+      box-shadow: 0 0 8px rgba(57,255,20,0.08);
+    }
+
+    /* CARDS */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
+      gap: 12px;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      padding: 22px;
+      position: relative;
+      cursor: pointer;
+      transition: all 0.15s;
+      animation: slideUp 0.35s ease both;
+      overflow: hidden;
+    }
+
+    .card:nth-child(1) { animation-delay: 0s; }
+    .card:nth-child(2) { animation-delay: 0.04s; }
+    .card:nth-child(3) { animation-delay: 0.08s; }
+    .card:nth-child(4) { animation-delay: 0.12s; }
+    .card:nth-child(5) { animation-delay: 0.16s; }
+    .card:nth-child(6) { animation-delay: 0.2s; }
+
+    .card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 3px;
+      height: 100%;
+      transition: background 0.15s;
+    }
+
+    .card[data-type="selling"]::before { background: var(--neon); }
+    .card[data-type="buying"]::before { background: var(--cash); }
+
+    .card:hover {
+      border-color: var(--border-hot);
+      background: var(--card-hover);
+      transform: translateX(3px);
+    }
+
+    .card-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .card-type {
+      font-size: 9px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      padding: 3px 8px;
+    }
+
+    .card-type--sell {
+      background: var(--neon-dim);
+      color: var(--neon);
+      border: 1px solid rgba(57,255,20,0.2);
+    }
+
+    .card-type--buy {
+      background: var(--cash-dim);
+      color: var(--cash);
+      border: 1px solid rgba(255,215,0,0.2);
+    }
+
+    .card-provider {
+      font-size: 10px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .card-title {
+      font-family: var(--head);
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 6px;
+      line-height: 1.3;
+    }
+
+    .card-desc {
+      font-size: 11px;
+      color: var(--dim);
+      line-height: 1.6;
+      margin-bottom: 16px;
+      font-weight: 300;
+    }
+
+    .card-meta {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+
+    .card-chip {
+      font-size: 10px;
+      padding: 3px 8px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border);
+      color: var(--dim);
+    }
+
+    .card-bottom {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-top: 14px;
+      border-top: 1px dashed var(--border);
+    }
+
+    .card-price {
+      font-family: var(--head);
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--neon);
+      text-shadow: 0 0 8px rgba(57,255,20,0.15);
+    }
+
+    .card-price .label {
+      font-size: 9px;
+      color: var(--muted);
+      font-family: var(--mono);
+      font-weight: 400;
+      text-shadow: none;
+      margin-left: 4px;
+      text-transform: lowercase;
+    }
+
+    .card-user {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .card-av {
+      width: 26px;
+      height: 26px;
+      background: var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 9px;
+      font-weight: 700;
+      color: var(--dim);
+    }
+
+    .card-uname {
+      font-size: 11px;
+      color: var(--dim);
+    }
+
+    .card-verified {
+      width: 6px;
+      height: 6px;
+      background: var(--neon);
+      border-radius: 50%;
+      box-shadow: 0 0 4px var(--neon-glow);
+    }
+
+    .card-msg {
+      padding: 6px 14px;
+      font-family: var(--mono);
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--dim);
+      background: transparent;
+      border: 1px solid var(--border);
+      cursor: pointer;
+      transition: all 0.1s;
+      text-transform: lowercase;
+    }
+
+    .card-msg:hover {
+      color: var(--neon);
+      border-color: var(--neon);
+      background: var(--neon-dim);
+      box-shadow: 0 0 10px rgba(57,255,20,0.1);
+    }
+
+    /* HOW */
+    .how-bar {
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .how-step {
+      padding: 28px;
+      border-right: 1px solid var(--border);
+      position: relative;
+    }
+
+    .how-step:last-child { border-right: none; }
+
+    .how-n {
+      font-family: var(--head);
+      font-size: 48px;
+      font-weight: 800;
+      color: var(--border);
+      line-height: 1;
+      margin-bottom: 10px;
+    }
+
+    .how-step h3 {
+      font-family: var(--head);
+      font-size: 14px;
+      font-weight: 700;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+
+    .how-step p {
+      font-size: 11px;
+      color: var(--dim);
+      line-height: 1.6;
+      font-weight: 300;
+    }
+
+    /* DISCLAIMER STRIP */
+    .disclaimer {
+      padding: 16px 28px;
+      text-align: center;
+      font-size: 10px;
+      color: var(--muted);
+      border-top: 1px solid var(--border);
+      letter-spacing: 0.04em;
+      line-height: 1.6;
+    }
+
+    .disclaimer a {
+      color: var(--dim);
+    }
+
+    /* FOOTER */
+    footer {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 20px 28px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      font-size: 10px;
+      color: var(--muted);
+      text-transform: lowercase;
+    }
+
+    /* MODAL */
+    .mo {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.75);
+      backdrop-filter: blur(4px);
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.15s;
+    }
+
+    .mo.open { opacity: 1; pointer-events: all; }
+
+    .mo-box {
+      background: var(--card);
+      border: 1px solid var(--border);
+      width: 90%;
+      max-width: 480px;
+      transform: translateY(8px);
+      transition: transform 0.2s;
+    }
+
+    .mo.open .mo-box { transform: translateY(0); }
+
+    .mo-head {
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .mo-head h3 {
+      font-family: var(--head);
+      font-size: 16px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .mo-x {
+      width: 26px;
+      height: 26px;
+      background: var(--border);
+      border: none;
+      color: var(--dim);
+      font-size: 14px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .mo-x:hover { background: var(--hot); color: white; }
+
+    .mo-body { padding: 20px; }
+
+    .fg { margin-bottom: 14px; }
+
+    .fg label {
+      display: block;
+      font-size: 9px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--muted);
+      margin-bottom: 5px;
+    }
+
+    .fi {
+      width: 100%;
+      padding: 9px 12px;
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--text);
+      background: var(--bg);
+      border: 1px solid var(--border);
+      outline: none;
+      transition: border-color 0.1s;
+    }
+
+    .fi:focus {
+      border-color: var(--neon);
+      box-shadow: 0 0 0 2px var(--neon-dim);
+    }
+
+    .fi-sel {
+      appearance: none;
+      background: var(--bg) url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%23555' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 10px center;
+      padding-right: 30px;
+    }
+
+    .fi-ta { resize: vertical; min-height: 70px; }
+    .fg-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+    .mo-foot {
+      padding: 14px 20px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      gap: 0;
+    }
+
+    .mo-foot .btn-sketch { flex: 1; text-align: center; display: flex; align-items: center; justify-content: center; }
+    .mo-foot .btn-sketch + .btn-sketch { border-left: none; }
+
+    /* DRAWER */
+    .dr-bg {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 300;
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.15s;
+    }
+
+    .dr-bg.open { opacity: 1; pointer-events: all; }
+
+    .dr {
+      position: fixed;
+      right: -440px;
+      top: 0; bottom: 0;
+      width: 420px;
+      background: var(--card);
+      border-left: 1px solid var(--border);
+      z-index: 301;
+      transition: right 0.25s ease;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .dr.open { right: 0; }
+
+    .dr-head {
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .dr-head h3 {
+      font-family: var(--head);
+      font-size: 14px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .dr-body {
+      flex: 1; padding: 20px; overflow-y: auto;
+      display: flex; flex-direction: column; gap: 10px;
+    }
+
+    .dm {
+      max-width: 82%;
+      padding: 9px 14px;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .dm.them {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      align-self: flex-start;
+    }
+
+    .dm.me {
+      background: var(--neon-dim);
+      border: 1px solid rgba(57,255,20,0.15);
+      color: var(--neon);
+      align-self: flex-end;
+    }
+
+    .dr-in {
+      padding: 14px 20px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      gap: 0;
+    }
+
+    .dr-input {
+      flex: 1;
+      padding: 9px 12px;
+      font-family: var(--mono);
+      font-size: 11px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      outline: none;
+    }
+
+    .dr-input:focus { border-color: var(--neon); }
+
+    .dr-send {
+      padding: 9px 18px;
+      background: var(--neon);
+      color: var(--bg);
+      font-family: var(--mono);
+      font-size: 10px;
+      font-weight: 700;
+      border: 1px solid var(--neon);
+      border-left: none;
+      cursor: pointer;
+      text-transform: lowercase;
+    }
+
+    .dr-send:hover { box-shadow: 0 0 12px var(--neon-glow); }
+
+    /* RESPONSIVE */
+    @media (max-width: 768px) {
+      .hero { padding: 80px 20px 50px; }
+      .grid { grid-template-columns: 1fr; }
+      .how-bar { grid-template-columns: 1fr; }
+      .how-step { border-right: none; border-bottom: 1px solid var(--border); }
+      .dr { width: 100%; right: -100%; }
+      .ticker-inner { gap: 32px; }
+      nav { padding: 0 16px; }
+      .section { padding: 32px 20px 48px; }
+    }
+  </style>
+</head>
+<body>
+
+  <nav>
+    <a href="#" class="nav-logo">LiquidHacks</a>
+    <div class="nav-r">
+      <button class="nav-btn" onclick="scrollTo('feed')">browse</button>
+      <button class="nav-btn" onclick="openMo('authMo')">log in</button>
+      <button class="nav-btn nav-btn--go" onclick="openMo('postMo')">+ sell</button>
+    </div>
+  </nav>
+
+  <section class="hero">
+    <div class="hero-warning"><span class="blink">&#9679;</span> unregulated p2p market &mdash; trade at your own risk</div>
+    <h1>turn <span class="g">hackathon</span> credits into <span class="cash-text">cash</span></h1>
+    <p class="hero-sub">Won API credits you'll never burn? <strong>Flip them.</strong> Need cheap compute for your side project? <strong>Buy from other hackers.</strong> Direct deals, no middlemen, no paper trail.</p>
+    <div class="hero-actions">
+      <button class="btn-sketch btn-sketch--fill" onclick="scrollTo('feed')">browse listings</button>
+      <button class="btn-sketch btn-sketch--ghost" onclick="openMo('postMo')">post credits</button>
+    </div>
+  </section>
+
+  <!-- TICKER -->
+  <div class="ticker">
+    <div class="ticker-inner">
+      <span class="ticker-item"><span class="val">$12.4K</span> total listed</span>
+      <span class="ticker-item"><span class="val">47</span> live listings</span>
+      <span class="ticker-item"><span class="hot-val">23</span> trades closed</span>
+      <span class="ticker-item">OpenAI &bull; Anthropic &bull; GCP &bull; AWS &bull; Vercel</span>
+      <span class="ticker-item"><span class="val">40-60%</span> avg discount</span>
+      <span class="ticker-item">no kyc &bull; no fees &bull; p2p only</span>
+      <!-- duplicate for seamless loop -->
+      <span class="ticker-item"><span class="val">$12.4K</span> total listed</span>
+      <span class="ticker-item"><span class="val">47</span> live listings</span>
+      <span class="ticker-item"><span class="hot-val">23</span> trades closed</span>
+      <span class="ticker-item">OpenAI &bull; Anthropic &bull; GCP &bull; AWS &bull; Vercel</span>
+      <span class="ticker-item"><span class="val">40-60%</span> avg discount</span>
+      <span class="ticker-item">no kyc &bull; no fees &bull; p2p only</span>
+    </div>
+  </div>
+
+  <!-- HOW IT WORKS -->
+  <div class="how-bar">
+    <div class="how-step">
+      <div class="how-n">01</div>
+      <h3>List it</h3>
+      <p>Post credits with proof — devpost link, screenshot, whatever. Buyers need to trust the source.</p>
+    </div>
+    <div class="how-step">
+      <div class="how-n">02</div>
+      <h3>DM</h3>
+      <p>Buyer hits you up. Negotiate price, method, timeline. Everything in-thread, no emails.</p>
+    </div>
+    <div class="how-step">
+      <div class="how-n">03</div>
+      <h3>Swap</h3>
+      <p>Transfer credits, get paid. Venmo, crypto, whatever you agree on. Both confirm, done.</p>
+    </div>
+  </div>
+
+  <!-- LISTINGS -->
+  <section class="section" id="feed">
+    <div class="sec-head">
+      <div class="sec-title"><span class="live-dot"></span> live feed</div>
+      <div class="pills">
+        <button class="pill on" onclick="fil('all',this)">all</button>
+        <button class="pill" onclick="fil('selling',this)">selling</button>
+        <button class="pill" onclick="fil('buying',this)">buying</button>
+      </div>
+    </div>
+    <div class="grid" id="grid"></div>
+  </section>
+
+  <div class="disclaimer">
+    all trades are peer-to-peer. liquidhacks is a bulletin board, not an escrow.
+    verify credits independently before sending payment. we don't intermediate or guarantee anything.
+  </div>
+
+  <footer>
+    <span>liquidhacks &mdash; api credit grey market</span>
+    <span>dyor &bull; caveat emptor</span>
+  </footer>
+
+  <!-- Auth Modal -->
+  <div class="mo" id="authMo" onclick="if(event.target===this)closeMo('authMo')">
+    <div class="mo-box">
+      <div class="mo-head">
+        <h3>Log in</h3>
+        <button class="mo-x" onclick="closeMo('authMo')">&times;</button>
+      </div>
+      <div class="mo-body">
+        <div class="fg">
+          <label>email</label>
+          <input class="fi" type="email" placeholder="you@example.com">
+        </div>
+        <div class="fg">
+          <label>password</label>
+          <input class="fi" type="password" placeholder="&bull;&bull;&bull;&bull;&bull;&bull;">
+        </div>
+      </div>
+      <div class="mo-foot">
+        <button class="btn-sketch btn-sketch--ghost" onclick="closeMo('authMo')">cancel</button>
+        <button class="btn-sketch btn-sketch--fill" onclick="closeMo('authMo')">log in</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Post Modal -->
+  <div class="mo" id="postMo" onclick="if(event.target===this)closeMo('postMo')">
+    <div class="mo-box">
+      <div class="mo-head">
+        <h3>New listing</h3>
+        <button class="mo-x" onclick="closeMo('postMo')">&times;</button>
+      </div>
+      <div class="mo-body">
+        <div class="fg">
+          <label>type</label>
+          <select class="fi fi-sel">
+            <option>selling</option>
+            <option>buying</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label>provider</label>
+          <select class="fi fi-sel">
+            <option>OpenAI</option>
+            <option>Anthropic</option>
+            <option>Google Cloud</option>
+            <option>AWS</option>
+            <option>Vercel</option>
+            <option>Other</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label>title</label>
+          <input class="fi" type="text" placeholder="$500 OpenAI credits from HackMIT">
+        </div>
+        <div class="fg-row">
+          <div class="fg">
+            <label>face value</label>
+            <input class="fi" type="text" placeholder="$500">
+          </div>
+          <div class="fg">
+            <label>your price</label>
+            <input class="fi" type="text" placeholder="$200">
+          </div>
+        </div>
+        <div class="fg">
+          <label>details</label>
+          <textarea class="fi fi-ta" placeholder="expiry, transfer method, proof..."></textarea>
+        </div>
+        <div class="fg">
+          <label>proof link</label>
+          <input class="fi" type="url" placeholder="https://devpost.com/software/...">
+        </div>
+      </div>
+      <div class="mo-foot">
+        <button class="btn-sketch btn-sketch--ghost" onclick="closeMo('postMo')">cancel</button>
+        <button class="btn-sketch btn-sketch--fill" onclick="closeMo('postMo')">post</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Chat Drawer -->
+  <div class="dr-bg" id="drBg" onclick="closeDr()"></div>
+  <div class="dr" id="dr">
+    <div class="dr-head">
+      <h3 id="drTitle">dm</h3>
+      <button class="mo-x" onclick="closeDr()">&times;</button>
+    </div>
+    <div class="dr-body" id="drBody">
+      <div class="dm them">yo those openai credits still up?</div>
+      <div class="dm me">yeah, expires april. what's your offer</div>
+      <div class="dm them">150?</div>
+      <div class="dm me">make it 175 and we have a deal</div>
+      <div class="dm them">bet. venmo or crypto?</div>
+    </div>
+    <div class="dr-in">
+      <input class="dr-input" id="drInput" placeholder="type..." onkeydown="if(event.key==='Enter')sendDr()">
+      <button class="dr-send" onclick="sendDr()">send</button>
+    </div>
+  </div>
+
+  <script>
+    const items = [
+      { type:'selling', title:'$500 OpenAI credits — HackMIT', desc:'GPT-4 + DALL-E. Transferable via org invite. Expires Apr 2026.', provider:'OpenAI', value:'$500', price:'$200', user:'ava_k', av:'AK', verified:true, hackathon:'HackMIT \'25' },
+      { type:'selling', title:'$1K Anthropic credits — Claude API', desc:'Opus & Sonnet. Won at TreeHacks. API key handoff. 6mo left.', provider:'Anthropic', value:'$1,000', price:'$450', user:'jchen', av:'JC', verified:true, hackathon:'TreeHacks \'25' },
+      { type:'selling', title:'$200 GCP credits', desc:'Vertex AI, Compute Engine. CalHacks prize. 90 days.', provider:'Google', value:'$200', price:'$80', user:'ml_max', av:'MM', verified:true, hackathon:'CalHacks \'25' },
+      { type:'buying', title:'WTB: AWS Bedrock credits ~$300', desc:'Building AI startup MVP. Need Bedrock access specifically.', provider:'AWS', value:'$300', price:'$180', user:'devraj', av:'DR', verified:false, hackathon:null },
+      { type:'selling', title:'Vercel Pro 1yr + $100 usage', desc:'PennApps prize. Pro tier + edge functions. Transferable.', provider:'Vercel', value:'$340', price:'$120', user:'zara.dev', av:'ZD', verified:true, hackathon:'PennApps \'25' },
+      { type:'selling', title:'$250 Pinecone serverless credits', desc:'Vector DB credits from LA Hacks. No stated expiry.', provider:'Pinecone', value:'$250', price:'$100', user:'vec_q', av:'VQ', verified:true, hackathon:'LA Hacks \'25' },
+    ];
+
+    function render(f='all') {
+      const g = document.getElementById('grid');
+      const d = f==='all' ? items : items.filter(i=>i.type===f);
+      g.innerHTML = d.map(i => `
+        <div class="card" data-type="${i.type}">
+          <div class="card-top">
+            <span class="card-type ${i.type==='selling'?'card-type--sell':'card-type--buy'}">${i.type}</span>
+            <span class="card-provider">${i.provider}</span>
+          </div>
+          <div class="card-title">${i.title}</div>
+          <div class="card-desc">${i.desc}</div>
+          <div class="card-meta">
+            ${i.hackathon ? `<span class="card-chip">${i.hackathon}</span>` : ''}
+            <span class="card-chip">face: ${i.value}</span>
+          </div>
+          <div class="card-bottom">
+            <div class="card-price">${i.price}<span class="label">${i.type==='selling'?'ask':'budget'}</span></div>
+            <div class="card-user">
+              <div class="card-av">${i.av}</div>
+              <span class="card-uname">${i.user}</span>
+              ${i.verified?'<div class="card-verified"></div>':''}
+              <button class="card-msg" onclick="event.stopPropagation();openDr('${i.user}')">dm</button>
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function fil(t,b) {
+      document.querySelectorAll('.pill').forEach(x=>x.classList.remove('on'));
+      b.classList.add('on');
+      render(t);
+    }
+
+    function openMo(id) { document.getElementById(id).classList.add('open'); }
+    function closeMo(id) { document.getElementById(id).classList.remove('open'); }
+
+    function openDr(u) {
+      document.getElementById('drTitle').textContent = `dm @${u}`;
+      document.getElementById('dr').classList.add('open');
+      document.getElementById('drBg').classList.add('open');
+    }
+
+    function closeDr() {
+      document.getElementById('dr').classList.remove('open');
+      document.getElementById('drBg').classList.remove('open');
+    }
+
+    function sendDr() {
+      const inp = document.getElementById('drInput');
+      if (!inp.value.trim()) return;
+      const b = document.getElementById('drBody');
+      const m = document.createElement('div');
+      m.className = 'dm me';
+      m.textContent = inp.value.trim();
+      b.appendChild(m);
+      inp.value = '';
+      b.scrollTop = b.scrollHeight;
+    }
+
+    function scrollTo(id) {
+      document.getElementById(id).scrollIntoView({ behavior:'smooth' });
+    }
+
+    render();
+  </script>
+
+</body>
+</html>
