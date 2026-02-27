@@ -23,6 +23,7 @@ listingsRouter.get('/', async (c) => {
     contactInfo: listings.contactInfo,
     createdAt: listings.createdAt,
     userId: listings.userId,
+    status: listings.status,
     username: users.username,
     avatarUrl: users.avatarUrl,
   })
@@ -54,6 +55,7 @@ listingsRouter.get('/:id', async (c) => {
     contactInfo: listings.contactInfo,
     createdAt: listings.createdAt,
     userId: listings.userId,
+    status: listings.status,
     username: users.username,
     avatarUrl: users.avatarUrl,
   })
@@ -97,12 +99,31 @@ listingsRouter.post('/', requireAuth, async (c) => {
   return c.json(inserted[0], 201);
 });
 
+// PATCH mark as traded (auth required, must own)
+listingsRouter.patch('/:id/traded', requireAuth, async (c) => {
+  const user = c.get('user')!;
+  const id = c.req.param('id');
+
+  const existing = await db.select({ id: listings.id, userId: listings.userId })
+    .from(listings).where(eq(listings.id, id)).limit(1);
+  if (existing.length === 0) return c.json({ error: 'Not found' }, 404);
+  if (existing[0].userId !== user.sub) return c.json({ error: 'Forbidden' }, 403);
+
+  const updated = await db.update(listings)
+    .set({ status: 'traded', updatedAt: new Date() })
+    .where(eq(listings.id, id))
+    .returning({ id: listings.id, status: listings.status });
+
+  return c.json(updated[0]);
+});
+
 // PUT update listing (auth required, must own)
 listingsRouter.put('/:id', requireAuth, async (c) => {
   const user = c.get('user')!;
   const id = c.req.param('id');
 
-  const existing = await db.select().from(listings).where(eq(listings.id, id)).limit(1);
+  const existing = await db.select({ id: listings.id, userId: listings.userId })
+    .from(listings).where(eq(listings.id, id)).limit(1);
   if (existing.length === 0) return c.json({ error: 'Not found' }, 404);
   if (existing[0].userId !== user.sub) return c.json({ error: 'Forbidden' }, 403);
 
@@ -133,7 +154,8 @@ listingsRouter.delete('/:id', requireAuth, async (c) => {
   const user = c.get('user')!;
   const id = c.req.param('id');
 
-  const existing = await db.select().from(listings).where(eq(listings.id, id)).limit(1);
+  const existing = await db.select({ id: listings.id, userId: listings.userId })
+    .from(listings).where(eq(listings.id, id)).limit(1);
   if (existing.length === 0) return c.json({ error: 'Not found' }, 404);
   if (existing[0].userId !== user.sub) return c.json({ error: 'Forbidden' }, 403);
 

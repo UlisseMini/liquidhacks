@@ -774,6 +774,20 @@ footer {
 .card-own-btn--del:hover { border-color: var(--hot); background: var(--hot-dim); }
 .card-own-btn--edit { color: var(--dim); }
 .card-own-btn--edit:hover { border-color: var(--neon); color: var(--neon); background: var(--neon-dim); }
+.card-own-btn--traded { color: var(--cash); }
+.card-own-btn--traded:hover { border-color: var(--cash); background: var(--cash-dim); }
+
+.card-traded-badge {
+  font-size: 9px;
+  padding: 2px 7px;
+  border: 1px solid var(--cash);
+  color: var(--cash);
+  border-radius: 2px;
+  letter-spacing: 0.08em;
+  margin-left: auto;
+}
+
+.card--traded { opacity: 0.6; }
 
 /* Nav auth states */
 .nav-logged-in { display: none; }

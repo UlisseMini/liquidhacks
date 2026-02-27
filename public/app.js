@@ -5,6 +5,7 @@ let currentFilter = 'all';
 let editingId = null;
 let searchQuery = '';
 let providerFilter = '';
+let availableOnly = false;
 
 // Init
 document.addEventListener('DOMContentLoaded', () => {
@@ -63,7 +64,8 @@ function getFiltered() {
       (item.description || '').toLowerCase().includes(q) ||
       item.provider.toLowerCase().includes(q) ||
       (item.creditType || '').toLowerCase().includes(q);
-    return matchesProvider && matchesSearch;
+    const matchesAvailable = !availableOnly || !item.status || item.status === 'active';
+    return matchesProvider && matchesSearch && matchesAvailable;
   });
 }
 
@@ -80,15 +82,17 @@ function render() {
   }
   grid.innerHTML = listings.map((item, idx) => {
     const isMine = currentUser && item.userId === currentUser.id;
+    const isTraded = item.status === 'traded';
     const faceVal = item.faceValue ? `$${(item.faceValue / 100).toLocaleString()}` : '';
     const askVal = `$${(item.askingPrice / 100).toLocaleString()}`;
     const initials = (item.username || '??').slice(0, 2).toUpperCase();
 
     return `
-      <div class="card" data-type="${item.type}" style="animation-delay: ${idx * 0.04}s">
+      <div class="card${isTraded ? ' card--traded' : ''}" data-type="${item.type}" style="animation-delay: ${idx * 0.04}s">
         <div class="card-top">
           <span class="card-type ${item.type === 'selling' ? 'card-type--sell' : 'card-type--buy'}">${item.type}</span>
           <span class="card-provider">${esc(item.provider)}</span>
+          ${isTraded ? `<span class="card-traded-badge">traded</span>` : ''}
         </div>
         <div class="card-title">${esc(item.title)}</div>
         <div class="card-desc">${esc(item.description || '')}</div>
@@ -110,6 +114,7 @@ function render() {
         <div class="card-contact" id="contact-${item.id}">${esc(item.contactInfo || '')}</div>
         ${isMine ? `
           <div class="card-own-controls">
+            ${!isTraded ? `<button class="card-own-btn card-own-btn--traded" onclick="event.stopPropagation();markAsTraded('${item.id}')">mark traded</button>` : ''}
             <button class="card-own-btn card-own-btn--edit" onclick="event.stopPropagation();editListing('${item.id}')">edit</button>
             <button class="card-own-btn card-own-btn--del" onclick="event.stopPropagation();deleteListing('${item.id}')">delete</button>
           </div>
@@ -258,6 +263,30 @@ async function deleteListing(id) {
   } catch (e) {
     toast('network error', true);
   }
+}
+
+async function markAsTraded(id) {
+  if (!confirm('mark this listing as traded?')) return;
+  try {
+    const res = await fetch(`/api/listings/${id}/traded`, { method: 'PATCH' });
+    if (res.ok) {
+      const item = allListings.find(l => l.id === id);
+      if (item) item.status = 'traded';
+      if (currentUser) profileCache.delete(currentUser.username);
+      render();
+      toast('marked as traded');
+    } else {
+      toast('failed', true);
+    }
+  } catch (e) {
+    toast('network error', true);
+  }
+}
+
+function setAvailableOnly(btn) {
+  availableOnly = !availableOnly;
+  btn.classList.toggle('on', availableOnly);
+  render();
 }
 
 function clearForm() {
