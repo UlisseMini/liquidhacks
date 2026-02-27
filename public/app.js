@@ -118,21 +118,18 @@ function fil(type, btn) {
 }
 
 function showMyListings() {
-  // Filter to only show current user's listings
   if (!currentUser) return;
+  document.querySelectorAll('.pill').forEach(p => p.classList.remove('on'));
   const mine = allListings.filter(l => l.userId === currentUser.id);
   const grid = document.getElementById('grid');
   if (mine.length === 0) {
     grid.innerHTML = '<div class="grid-loading">you have no listings yet</div>';
-    return;
+  } else {
+    const saved = allListings;
+    allListings = mine;
+    render();
+    allListings = saved;
   }
-  // Temporarily swap allListings for render
-  const saved = allListings;
-  allListings = mine;
-  render();
-  allListings = saved;
-
-  document.querySelectorAll('.pill').forEach(p => p.classList.remove('on'));
   document.getElementById('feed').scrollIntoView({ behavior: 'smooth' });
 }
 
