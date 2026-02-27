@@ -1134,3 +1134,82 @@ footer {
   .chat-layout { flex-direction: column; }
   .chat-sidebar { width: 100%; border-left: none; border-top: 1px solid var(--border); max-height: 180px; }
 }
+
+/* ── Profile Modal ─────────────────────────────────── */
+.mo-box--profile { max-width: 500px; }
+
+.profile-header {
+  display: flex;
+  gap: 1.2rem;
+  align-items: flex-start;
+  margin-bottom: 1.4rem;
+}
+
+.profile-av {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  border: 2px solid var(--neon);
+  flex-shrink: 0;
+}
+
+.profile-av--init {
+  background: var(--card);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 1.2rem;
+  color: var(--neon);
+}
+
+.profile-info { display: flex; flex-direction: column; gap: 0.3rem; }
+.profile-username { font-family: var(--head); font-size: 1.25rem; font-weight: 700; color: var(--text); }
+.profile-since { font-size: 0.75rem; color: var(--dim); }
+
+.profile-stats {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1.4rem;
+  padding: 0.8rem;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
+
+.profile-stat { flex: 1; text-align: center; font-size: 0.72rem; color: var(--dim); }
+.profile-stat-val {
+  font-family: var(--head);
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--neon);
+  margin-bottom: 0.2rem;
+}
+
+.profile-listings { display: flex; flex-direction: column; gap: 0.5rem; }
+
+.profile-listing-card {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.55rem 0.8rem;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+.profile-listing-card:hover { border-color: var(--neon); }
+
+.profile-listing-title {
+  flex: 1;
+  font-size: 0.82rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.profile-listing-price { font-size: 0.82rem; color: var(--neon); font-weight: 600; white-space: nowrap; }
+
+.card-uname-link { cursor: pointer; transition: color 0.15s; }
+.card-uname-link:hover { color: var(--neon); text-decoration: underline; }

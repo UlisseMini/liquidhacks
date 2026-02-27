@@ -24,8 +24,8 @@
 
       <!-- Logged in state -->
       <div class="nav-logged-in" id="navLoggedIn">
-        <img class="nav-avatar" id="navAvatar" src="" alt="">
-        <span class="nav-username" id="navUsername"></span>
+        <img class="nav-avatar" id="navAvatar" src="" alt="" onclick="openOwnProfile()" style="cursor:pointer">
+        <span class="nav-username" id="navUsername" onclick="openOwnProfile()" style="cursor:pointer"></span>
         <button class="nav-btn" onclick="showMyListings()">my listings</button>
         <button class="nav-btn" onclick="openConversations()">messages</button>
         <button class="nav-btn" onclick="logout()">log out</button>
@@ -184,6 +184,20 @@
       </div>
     </div>
   </div>
+
+  <!-- Profile Modal -->
+  <div class="mo" id="profileMo" onclick="if(event.target===this)closeProfMo()">
+    <div class="mo-box mo-box--profile">
+      <div class="mo-head">
+        <h3 id="profileMoTitle">profile</h3>
+        <button class="mo-x" onclick="closeProfMo()">&times;</button>
+      </div>
+      <div class="mo-body" id="profileMoBody">
+        <div class="grid-loading">loading...</div>
+      </div>
+    </div>
+  </div>
+
 
   <!-- Chat Modal -->
   <div class="mo" id="chatMo" onclick="if(event.target===this)closeChatMo()">

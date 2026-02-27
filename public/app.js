@@ -103,7 +103,7 @@ function render() {
               ? `<img class="card-av" src="${esc(item.avatarUrl)}" style="border-radius:50%" width="26" height="26">`
               : `<div class="card-av">${initials}</div>`
             }
-            <span class="card-uname">${esc(item.username || 'anon')}</span>
+            <span class="card-uname card-uname-link" onclick="event.stopPropagation();openProfile('${item.username||"anon"}')">${esc(item.username || 'anon')}</span>
             <button class="card-msg" onclick="event.stopPropagation();openChat('${item.id}','${item.userId}')">contact</button>
           </div>
         </div>
@@ -525,4 +525,67 @@ function scrollToFeed() {
   if (allPill) allPill.classList.add('on');
   loadListings();
   document.getElementById('feed').scrollIntoView({ behavior: 'smooth' });
+}
+
+// ── Profile ──────────────────────────────────────────
+let profileData = null;
+
+async function openProfile(username) {
+  if (!username || username === 'anon') return;
+  openMo('profileMo');
+  document.getElementById('profileMoTitle').textContent = username;
+  const body = document.getElementById('profileMoBody');
+  body.innerHTML = '<div class="grid-loading">loading...</div>';
+  try {
+    const res = await fetch(`/api/users/${encodeURIComponent(username)}`);
+    if (!res.ok) { body.innerHTML = '<div class="grid-loading">user not found</div>'; return; }
+    const data = await res.json();
+    profileData = data;
+    const { user, stats, listings: userListings } = data;
+    const since = new Date(user.createdAt).toLocaleDateString([], { month: 'short', year: 'numeric' });
+    const faceVal = stats.totalFaceValue ? `$${(stats.totalFaceValue / 100).toLocaleString()}` : '—';
+    const isOwnProfile = currentUser && currentUser.id === user.id;
+
+    body.innerHTML = `
+      <div class="profile-header">
+        ${user.avatarUrl
+          ? `<img class="profile-av" src="${esc(user.avatarUrl)}">`
+          : `<div class="profile-av profile-av--init">${user.username.slice(0,2).toUpperCase()}</div>`
+        }
+        <div class="profile-info">
+          <div class="profile-username">${esc(user.username)}</div>
+          <div class="profile-since">member since ${since}</div>
+        </div>
+      </div>
+      <div class="profile-stats">
+        <div class="profile-stat"><div class="profile-stat-val">${stats.totalListings}</div><div>listings</div></div>
+        <div class="profile-stat"><div class="profile-stat-val">${faceVal}</div><div>total listed</div></div>
+      </div>
+      ${userListings.length > 0 ? `
+        <div class="profile-listings">
+          <div class="cs-label">listings</div>
+          ${userListings.map(l => {
+            const askVal = `$${(l.askingPrice / 100).toLocaleString()}`;
+            return `<div class="profile-listing-card" onclick="closeProfMo();${isOwnProfile ? `editListing('${l.id}')` : `openChat('${l.id}','${l.userId}')`}">
+              <span class="card-type ${l.type === 'selling' ? 'card-type--sell' : 'card-type--buy'}">${l.type}</span>
+              <span class="profile-listing-title">${esc(l.title)}</span>
+              <span class="profile-listing-price">${askVal}</span>
+            </div>`;
+          }).join('')}
+        </div>
+      ` : `<div class="cs-dim" style="text-align:center;padding:1rem">no listings</div>`}
+    `;
+  } catch (e) {
+    body.innerHTML = '<div class="grid-loading">failed to load profile</div>';
+  }
+}
+
+function openOwnProfile() {
+  if (!currentUser) return;
+  openProfile(currentUser.username);
+}
+
+function closeProfMo() {
+  closeMo('profileMo');
+  profileData = null;
 }

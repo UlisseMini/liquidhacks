@@ -6,6 +6,7 @@ import auth from './routes/auth.js';
 import listingsRouter from './routes/listings.js';
 import me from './routes/me.js';
 import chatRouter from './routes/chat.js';
+import usersRouter from './routes/users.js';
 import { optionalAuth } from './middleware/auth.js';
 
 const app = new Hono();
@@ -18,6 +19,7 @@ app.route('/api/auth', auth);
 app.route('/api/listings', listingsRouter);
 app.route('/api/me', me);
 app.route('/api/chat', chatRouter);
+app.route('/api/users', usersRouter);
 
 // Static files
 app.use('/*', serveStatic({ root: './public' }));
