@@ -265,10 +265,14 @@ async function deleteListing(id) {
   }
 }
 
-async function markAsTraded(id) {
+async function markAsTraded(id, tradedWithUserId) {
   if (!confirm('mark this listing as traded?')) return;
   try {
-    const res = await fetch(`/api/listings/${id}/traded`, { method: 'PATCH' });
+    const res = await fetch(`/api/listings/${id}/traded`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tradedWithUserId: tradedWithUserId || null }),
+    });
     if (res.ok) {
       const item = allListings.find(l => l.id === id);
       if (item) item.status = 'traded';
@@ -287,6 +291,36 @@ function setAvailableOnly(btn) {
   availableOnly = !availableOnly;
   btn.classList.toggle('on', availableOnly);
   render();
+}
+
+async function aiSuggest() {
+  if (!currentUser) { toast('log in first', true); return; }
+  const btn = document.getElementById('aiBtn');
+  if (btn) { btn.textContent = '...'; btn.disabled = true; }
+  try {
+    const res = await fetch('/api/ai/suggest', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        provider: document.getElementById('postProvider').value,
+        creditType: document.getElementById('postCreditType').value,
+        faceValue: parseCents(document.getElementById('postFaceValue').value),
+        askingPrice: parseCents(document.getElementById('postAskingPrice').value),
+        title: document.getElementById('postTitle').value,
+      }),
+    });
+    const data = await res.json();
+    if (data.suggestion) {
+      document.getElementById('postDescription').value = data.suggestion;
+      toast('AI description added');
+    } else {
+      toast('AI had no suggestion', true);
+    }
+  } catch {
+    toast('AI request failed', true);
+  } finally {
+    if (btn) { btn.textContent = '✦ AI suggest'; btn.disabled = false; }
+  }
 }
 
 function clearForm() {
@@ -614,6 +648,7 @@ async function loadProfileInto(username, body) {
       <div class="profile-stats">
         <div class="profile-stat"><div class="profile-stat-val">${stats.totalListings}</div><div>listings</div></div>
         <div class="profile-stat"><div class="profile-stat-val">${faceVal}</div><div>total listed</div></div>
+        ${stats.tradeCount ? `<div class="profile-stat profile-stat--trust"><div class="profile-stat-val">${stats.tradeCount}</div><div>verified trades</div></div>` : ''}
       </div>
       ${userListings.length > 0 ? `
         <div class="profile-listings">

@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { eq, desc } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { users, listings } from '../db/schema.js';
+import { getTrustScore } from '../db/neo4j.js';
 
 const usersRouter = new Hono();
 
@@ -24,9 +25,11 @@ usersRouter.get('/:username', async (c) => {
     .where(eq(listings.userId, user.id))
     .orderBy(desc(listings.createdAt));
 
+  const tradeCount = await getTrustScore(user.id);
   const stats = {
     totalListings: userListings.length,
     totalFaceValue: userListings.reduce((s, l) => s + (l.faceValue || 0), 0),
+    tradeCount,
   };
 
   return c.json({

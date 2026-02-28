@@ -10,14 +10,15 @@
     "db:push": "drizzle-kit push"
   },
   "dependencies": {
-    "hono": "^4",
     "@hono/node-server": "^1",
-    "drizzle-orm": "^0.38",
-    "postgres": "^3",
-    "jose": "^6",
-    "typescript": "^5",
+    "@types/node": "^22",
     "drizzle-kit": "^0.30",
-    "@types/node": "^22"
+    "drizzle-orm": "^0.38",
+    "hono": "^4",
+    "jose": "^6",
+    "neo4j-driver": "^6.0.1",
+    "postgres": "^3",
+    "typescript": "^5"
   },
   "devDependencies": {
     "tsx": "^4"

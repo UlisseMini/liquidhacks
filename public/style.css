@@ -789,6 +789,27 @@ footer {
 
 .card--traded { opacity: 0.6; }
 
+/* AI suggest button */
+.ai-btn {
+  background: none;
+  border: 1px solid var(--purple);
+  color: var(--purple);
+  cursor: pointer;
+  font-size: 9px;
+  font-family: var(--mono);
+  padding: 2px 7px;
+  border-radius: 2px;
+  margin-left: 8px;
+  opacity: 0.75;
+  transition: opacity 0.15s;
+  vertical-align: middle;
+}
+.ai-btn:hover { opacity: 1; }
+.ai-btn:disabled { opacity: 0.35; cursor: default; }
+
+/* Trust score stat */
+.profile-stat--trust .profile-stat-val { color: var(--neon); }
+
 /* Nav auth states */
 .nav-logged-in { display: none; }
 .nav-logged-in.show { display: flex; align-items: center; gap: 2px; }

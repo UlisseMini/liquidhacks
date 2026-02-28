@@ -3,6 +3,7 @@ import { eq, desc } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { listings, users } from '../db/schema.js';
 import { requireAuth } from '../middleware/auth.js';
+import { recordTrade } from '../db/neo4j.js';
 
 const listingsRouter = new Hono();
 
@@ -105,7 +106,7 @@ listingsRouter.patch('/:id/traded', requireAuth, async (c) => {
   const user = c.get('user')!;
   const id = c.req.param('id');
 
-  const existing = await db.select({ id: listings.id, userId: listings.userId })
+  const existing = await db.select({ id: listings.id, userId: listings.userId, provider: listings.provider })
     .from(listings).where(eq(listings.id, id)).limit(1);
   if (existing.length === 0) return c.json({ error: 'Not found' }, 404);
   if (existing[0].userId !== user.sub) return c.json({ error: 'Forbidden' }, 403);
@@ -114,6 +115,13 @@ listingsRouter.patch('/:id/traded', requireAuth, async (c) => {
     .set({ status: 'traded', updatedAt: new Date() })
     .where(eq(listings.id, id))
     .returning({ id: listings.id, status: listings.status });
+
+  // Optionally record trade graph edge (Neo4j)
+  const body = await c.req.json().catch(() => ({}));
+  const tradedWithUserId: string | undefined = body?.tradedWithUserId;
+  if (tradedWithUserId) {
+    recordTrade(user.sub, tradedWithUserId, id, existing[0].provider).catch(() => {});
+  }
 
   return c.json(updated[0]);
 });
