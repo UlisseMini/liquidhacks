@@ -11,4 +11,3 @@ A web platform people can buy/sell API credits from others, won from hackathons.
 Additional features:
 
 - Automated agentic reachout for growth. Find hackathon winners by monitoring devpost, and then attempt to reach out in an automated way after finding their contacts. Can start by just creating a big spreadsheet for manual reachout.
--
