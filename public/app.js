@@ -265,14 +265,10 @@ async function deleteListing(id) {
   }
 }
 
-async function markAsTraded(id, tradedWithUserId) {
+async function markAsTraded(id) {
   if (!confirm('mark this listing as traded?')) return;
   try {
-    const res = await fetch(`/api/listings/${id}/traded`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ tradedWithUserId: tradedWithUserId || null }),
-    });
+    const res = await fetch(`/api/listings/${id}/traded`, { method: 'PATCH' });
     if (res.ok) {
       const item = allListings.find(l => l.id === id);
       if (item) item.status = 'traded';

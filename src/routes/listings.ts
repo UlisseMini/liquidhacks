@@ -116,12 +116,8 @@ listingsRouter.patch('/:id/traded', requireAuth, async (c) => {
     .where(eq(listings.id, id))
     .returning({ id: listings.id, status: listings.status });
 
-  // Optionally record trade graph edge (Neo4j)
-  const body = await c.req.json().catch(() => ({}));
-  const tradedWithUserId: string | undefined = body?.tradedWithUserId;
-  if (tradedWithUserId) {
-    recordTrade(user.sub, tradedWithUserId, id, existing[0].provider).catch(() => {});
-  }
+  // Record trade in Neo4j graph: (User)-[:COMPLETED_TRADE]->(Provider)
+  recordTrade(user.sub, id, existing[0].provider).catch(() => {});
 
   return c.json(updated[0]);
 });

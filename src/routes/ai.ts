@@ -12,18 +12,16 @@ aiRouter.post('/suggest', requireAuth, async (c) => {
   const fv = faceValue ? `$${(Number(faceValue) / 100).toFixed(0)}` : 'unknown face value';
   const ap = askingPrice ? `$${(Number(askingPrice) / 100).toFixed(0)}` : 'unknown price';
 
-  // Frame as a browser form-filling task so n1 returns type_text with the content
-  const prompt = `You are a browser agent on a P2P API credit marketplace. Your task is to fill in the "details" textarea with a compelling listing description.
+  const prompt = `Write a 2-3 sentence listing description for selling API credits on a P2P marketplace. Keep it factual and concise — no fluff.
 
-Form currently shows:
+Listing details:
 - Title: ${title || `${provider} credits`}
 - Provider: ${provider}
 - Credit Type: ${creditType}
 - Face Value: ${fv}
 - Asking Price: ${ap}
-- Details textarea: [empty — needs filling]
 
-Use the type_text action to fill the details field with a 2-3 sentence description covering: what the credits are good for, how the transfer will work, and why the discount is fair. Keep it honest and hacker-toned. No fluff.`;
+Cover: what the credits are for, how transfer works, why the price is fair.`;
 
   try {
     const res = await fetch('https://api.yutori.com/v1/chat/completions', {
@@ -33,7 +31,7 @@ Use the type_text action to fill the details field with a 2-3 sentence descripti
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'n1-latest',
+        model: 'n1-20260203',
         messages: [{ role: 'user', content: prompt }],
       }),
     });
