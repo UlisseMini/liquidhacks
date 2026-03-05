@@ -28,6 +28,7 @@
         <span class="nav-username" id="navUsername" onclick="openOwnProfile()" style="cursor:pointer"></span>
         <button class="nav-btn" onclick="showMyListings()">my listings</button>
         <button class="nav-btn" onclick="openConversations()">messages</button>
+        <button class="nav-btn" onclick="openMyDeals()">my deals</button>
         <button class="nav-btn" onclick="logout()">log out</button>
         <button class="nav-btn nav-btn--go" onclick="openMo('postMo')">+ sell</button>
       </div>
@@ -301,6 +302,19 @@
       </div>
       <div class="mo-body conv-list" id="convList">
         <div class="grid-loading">loading conversations...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- My Deals Modal -->
+  <div class="mo" id="dealsMo" onclick="if(event.target===this)closeMo('dealsMo')">
+    <div class="mo-box mo-box--chat">
+      <div class="mo-head">
+        <h3>my deals</h3>
+        <button class="mo-x" onclick="closeMo('dealsMo')">&times;</button>
+      </div>
+      <div class="mo-body conv-list" id="dealsList">
+        <div class="grid-loading">loading...</div>
       </div>
     </div>
   </div>

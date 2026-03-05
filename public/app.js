@@ -26,6 +26,7 @@ async function checkAuth() {
       if (currentUser.avatarUrl) {
         document.getElementById('navAvatar').src = currentUser.avatarUrl;
       }
+      checkMyEscrowStatus();
     }
   } catch (e) {
     // Not logged in
@@ -92,6 +93,7 @@ function render() {
         <div class="card-top">
           <span class="card-type ${item.type === 'selling' ? 'card-type--sell' : 'card-type--buy'}">${item.type}</span>
           <span class="card-provider">${esc(item.provider)}</span>
+          ${item.sellerEscrow && item.type === 'selling' ? `<span class="card-escrow-badge">escrow</span>` : ''}
           ${isTraded ? `<span class="card-traded-badge">traded</span>` : ''}
         </div>
         <div class="card-title">${esc(item.title)}</div>
@@ -108,6 +110,7 @@ function render() {
               : `<div class="card-av">${initials}</div>`
             }
             <span class="card-uname card-uname-link" onclick="event.stopPropagation();openProfile('${item.username||"anon"}')" onmouseenter="showProfilePreview('${item.username||''}', event)" onmouseleave="hideProfilePreview()">${esc(item.username || 'anon')}</span>
+            ${item.sellerEscrow && item.type === 'selling' && !isMine && !isTraded ? `<button class="card-escrow-btn" onclick="event.stopPropagation();openEscrowPayment('${item.id}')">buy with escrow</button>` : ''}
             <button class="card-msg" onclick="event.stopPropagation();openChat('${item.id}','${item.userId}')">contact</button>
           </div>
         </div>
@@ -688,6 +691,8 @@ async function loadProfileInto(username, body) {
           </div>
           <div class="profile-since">member since ${since}</div>
           ${!isOwnProfile ? `<button class="btn-sketch btn-sketch--fill profile-dm-btn" onclick="openDm('${user.id}','${esc(user.username)}')">send message</button>` : ''}
+          ${isOwnProfile && !onboardedSellers.has(user.id) ? `<button class="btn-sketch btn-sketch--ghost profile-dm-btn" onclick="enableEscrow()">enable escrow payments</button>` : ''}
+          ${isOwnProfile && onboardedSellers.has(user.id) ? `<span class="card-escrow-badge" style="margin-top:0.5rem">escrow enabled</span>` : ''}
         </div>
       </div>
       <div class="profile-stats">
@@ -970,3 +975,149 @@ async function sendDmMsg() {
     }
   } catch (e) { toast('network error', true); }
 }
+
+// ── Escrow ────────────────────────────────────────────
+let onboardedSellers = new Set();
+
+async function checkMyEscrowStatus() {
+  if (!currentUser) return;
+  try {
+    const res = await fetch('/api/escrow/onboard/status');
+    if (res.ok) {
+      const data = await res.json();
+      if (data.onboarded) onboardedSellers.add(currentUser.id);
+    }
+  } catch {}
+}
+
+async function enableEscrow() {
+  if (!currentUser) { toast('log in first', true); return; }
+  try {
+    const res = await fetch('/api/escrow/onboard', { method: 'POST' });
+    const data = await res.json();
+    if (data.url) {
+      window.location.href = data.url;
+    } else {
+      toast(data.error || 'failed to start onboarding', true);
+    }
+  } catch { toast('network error', true); }
+}
+
+async function openEscrowPayment(listingId) {
+  if (!currentUser) { toast('log in first', true); return; }
+
+  const listing = allListings.find(l => l.id === listingId);
+  if (!listing) return;
+
+  try {
+    toast('redirecting to stripe checkout...');
+    const res = await fetch('/api/escrow/create', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ listingId }),
+    });
+    const data = await res.json();
+    if (!res.ok) { toast(data.error || 'failed', true); return; }
+
+    // Redirect to Stripe Checkout
+    window.location.href = data.checkoutUrl;
+  } catch (e) {
+    toast('network error', true);
+  }
+}
+
+async function openMyDeals() {
+  if (!currentUser) { toast('log in first', true); return; }
+  openMo('dealsMo');
+  const container = document.getElementById('dealsList');
+  container.innerHTML = '<div class="grid-loading">loading...</div>';
+
+  try {
+    const res = await fetch('/api/escrow/my');
+    if (!res.ok) { container.innerHTML = '<div class="grid-loading">failed</div>'; return; }
+    const deals = await res.json();
+    if (deals.length === 0) {
+      container.innerHTML = '<div class="grid-loading">no escrow deals yet</div>';
+      return;
+    }
+    container.innerHTML = deals.map(d => {
+      const isBuyer = d.buyerId === currentUser.id;
+      const role = isBuyer ? 'buyer' : 'seller';
+      const other = isBuyer ? d.sellerUsername : d.buyerUsername;
+      const amt = '$' + (d.amountCents / 100).toLocaleString();
+      const statusClass = 'deal-status--' + d.status.replace('_', '-');
+      const timeStr = new Date(d.updatedAt).toLocaleDateString([], { month: 'short', day: 'numeric' });
+
+      let actions = '';
+      if (d.status === 'paid' && !isBuyer) {
+        actions = `<button class="card-own-btn card-own-btn--traded" onclick="escrowDeliver('${d.id}')">mark delivered</button>`;
+      } else if (d.status === 'delivered' && isBuyer) {
+        actions = `
+          <button class="card-own-btn card-own-btn--edit" onclick="escrowConfirm('${d.id}')">confirm receipt</button>
+          <button class="card-own-btn card-own-btn--del" onclick="escrowDispute('${d.id}')">dispute</button>
+        `;
+      }
+
+      return `<div class="deal-item">
+        <div class="deal-item-top">
+          <span class="deal-listing">${esc(d.listingTitle || '—')}</span>
+          <span class="deal-amount">${amt}</span>
+        </div>
+        <div class="deal-item-mid">
+          <span class="deal-role">${role}</span>
+          <span class="cs-dim">with ${esc(other)}</span>
+          <span class="deal-status ${statusClass}">${d.status.replace('_', ' ')}</span>
+          <span class="cs-dim">${timeStr}</span>
+        </div>
+        ${actions ? `<div class="deal-actions">${actions}</div>` : ''}
+      </div>`;
+    }).join('');
+  } catch {
+    container.innerHTML = '<div class="grid-loading">network error</div>';
+  }
+}
+
+async function escrowDeliver(txId) {
+  if (!confirm('Mark as delivered? Buyer will have 72h to confirm.')) return;
+  try {
+    const res = await fetch(`/api/escrow/${txId}/deliver`, { method: 'POST' });
+    if (res.ok) { toast('marked delivered'); openMyDeals(); }
+    else { const d = await res.json(); toast(d.error || 'failed', true); }
+  } catch { toast('network error', true); }
+}
+
+async function escrowConfirm(txId) {
+  if (!confirm('Confirm you received the credits? Funds will be released to seller.')) return;
+  try {
+    const res = await fetch(`/api/escrow/${txId}/confirm`, { method: 'POST' });
+    if (res.ok) { toast('confirmed — funds released'); openMyDeals(); }
+    else { const d = await res.json(); toast(d.error || 'failed', true); }
+  } catch { toast('network error', true); }
+}
+
+async function escrowDispute(txId) {
+  const reason = prompt('Describe the issue:');
+  if (reason === null) return;
+  try {
+    const res = await fetch(`/api/escrow/${txId}/dispute`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reason }),
+    });
+    if (res.ok) { toast('dispute filed'); openMyDeals(); }
+    else { const d = await res.json(); toast(d.error || 'failed', true); }
+  } catch { toast('network error', true); }
+}
+
+// Handle ?onboarded=1 and ?escrow_paid=1 query params
+(function handleEscrowParams() {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('onboarded') === '1') {
+    setTimeout(() => toast('escrow payments enabled'), 500);
+    history.replaceState(null, '', '/');
+  }
+  if (params.get('escrow_paid') === '1') {
+    setTimeout(() => toast('payment successful — escrow active'), 500);
+    history.replaceState(null, '', '/');
+  }
+})();
